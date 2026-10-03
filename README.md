@@ -3,9 +3,19 @@
 **Project Name:** Resilient Mesh Network Testbed for Mobile/Ad-Hoc Nodes  
 **Sponsor:** Idaho National Labs (INL)  
 
-**Members:** Patrick Rooney, Alex Boulay, Archer Snell, Camden Lippy, Alex Parlow, Quentin Train  
-**INL Engineer:** Nicholas Kaminsky  
-**Mentor:** Dr. Joe Adams  
+## Team and Stakeholders
+
+**Senior Design Team Members**  
+* Alex Boulay: Project Lead and Testing
+* Alex Parlow: Networkingg, Research, Physical Nodes
+* Archer Snell: Physical Nodes and Hardware
+* Camden Lippy: Budgeting and Testing
+* Patrick Rooney: Scheduling, Fronted, Virtual Nodes
+* Quentin Tran: Documentation
+
+**Sponsor and Mentor**
+* INL: Nicholas Kaminski, April Augustine
+* Faculty Mentor: Dr. Joe Adams
 
 ---
 
