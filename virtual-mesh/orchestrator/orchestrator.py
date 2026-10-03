@@ -1,0 +1,1 @@
+#python script translating x,y coords to tc netm

@@ -1,0 +1,1 @@
+#bind batman (bat0) inside namespaces

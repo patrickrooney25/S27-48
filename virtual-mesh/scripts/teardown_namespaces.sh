@@ -1,0 +1,1 @@
+#clean up namespaces and kill background processes
