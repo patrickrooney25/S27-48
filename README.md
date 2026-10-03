@@ -1,4 +1,4 @@
-## ECE 4805/4806 Major Design Experience
+## ECE 4805/4806 Major Design Experience (MDE)
 **Group:** S27-48  
 **Project Name:** Resilient Mesh Network Testbed for Mobile/Ad-Hoc Nodes  
 **Sponsor:** Idaho National Labs (INL)  
@@ -34,6 +34,9 @@ The testbed consists of three primary subsystems:
 1. **Physical Mesh Subsystem:** 4 battery-powered mobile ground carriers housing Raspberry Pis. Each node runs `batman-adv` (OSI Layer 2) over 2.4 GHz Wi-Fi (`wlan0`).
 2. **Virtual Mesh Subsystem:** A Linux Emulation Host running up to 6 virtual nodes isolated inside network namespaces (`ip netns`). Virtual nodes execute independent `batman-adv` kernel instances connected via virtual Ethernet (`veth`) pairs, with link degradation managed by a dynamic Python `tc netem` orchestrator.
 3. **Out-of-Band Control & Dashboard:** A isolated secondary network channel used by a central Test Controller to inject fault scenarios, collect telemetry timestamps without riding the mesh under test, and render a live remote topology map.
+
+## License and Open Data
+This project is open-source. All data, code, and project artifacts contain no proprietary or classified information in accordance with Virginia Tech MDE and INL policies.
 
 ## Running The Program
 
