@@ -1,11 +1,11 @@
 ## ECE 4805/4806 Major Design Experience
-**Group:** S27-48
-**Project Name:** Resilient Mesh Network Testbed for Mobile/Ad-Hoc Nodes
-**Sponsor:** Idaho National Labs (INL)
+**Group:** S27-48  
+**Project Name:** Resilient Mesh Network Testbed for Mobile/Ad-Hoc Nodes  
+**Sponsor:** Idaho National Labs (INL)  
 
-**Members:** Patrick Rooney, Alex Boulay, Archer Snell, Camden Lippy, Alex Parlow, Quentin Train
-**INL Engineer:** Nicholas Kaminsky
-**Mentor:** Dr. Joe Adams
+**Members:** Patrick Rooney, Alex Boulay, Archer Snell, Camden Lippy, Alex Parlow, Quentin Train  
+**INL Engineer:** Nicholas Kaminsky  
+**Mentor:** Dr. Joe Adams  
 
 ---
 
