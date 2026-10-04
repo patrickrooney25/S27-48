@@ -41,10 +41,10 @@ This project is open-source. All data, code, and project artifacts contain no pr
 ## Running The Program
 
 ### Prerequisites
-* Linux machine running Ubuntu 22.04 LTS or Debian 12
-* `batman-adv`, `batctl`, `iproute2`, and Python 3.10+ installed  
+* Linux machine running Ubuntu (or Debian) with Kernel 7.0+ support
+* `batman-adv`, `batctl`, `iproute2`, and Python 3.10+ installed
 
-If on windows, run wsl --install before running any powershell scripts.  
+If on Windows WSL/VM, ensure proper Linux kernel modules are available before executing scripts.
 
 ```bash
 # 1. Load the batman-adv kernel module
@@ -53,11 +53,14 @@ sudo modprobe batman-adv
 # 2. Set up virtual namespaces and veth pairs
 sudo bash virtual-mesh/scripts/setup_namespaces.sh
 
-# 3. Bind batman-adv inside namespaces
+# 3. Bind batman-adv inside namespaces (using modern batctl meshif syntax)
 sudo bash virtual-mesh/scripts/enable_batman.sh
 
-# 4. Verify virtual mesh originators
+# 4. Verify virtual mesh neighbors
 sudo ip netns exec vnode1 batctl n
 
-# 5. Launch the dynamic link orchestrator
+# 5. Test Layer 2 ping across the bat0 mesh
+sudo ip netns exec vnode1 batctl meshif bat0 ping <VNODE2_MAC_ADDRESS>
+
+# 6. (Optional) Launch the dynamic link orchestrator
 python3 virtual-mesh/orchestrator/orchestrator.py
