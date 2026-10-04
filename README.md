@@ -42,7 +42,9 @@ This project is open-source. All data, code, and project artifacts contain no pr
 
 ### Prerequisites
 * Linux machine running Ubuntu 22.04 LTS or Debian 12
-* `batman-adv`, `batctl`, `iproute2`, and Python 3.10+ installed
+* `batman-adv`, `batctl`, `iproute2`, and Python 3.10+ installed  
+
+If on windows, run wsl --install before running any powershell scripts.  
 
 ```bash
 # 1. Load the batman-adv kernel module
