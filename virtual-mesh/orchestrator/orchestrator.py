@@ -61,25 +61,31 @@ def clear_degredation(netns, interface):
     print(f"[SUCCESS] Cleared degradation rules on {interface} in {netns}")
 
 # Reads the transmit quality between the nodes
-def read_transmit_quality(netns):
-    # batctl o prints a table like this:
-    #    Originator        last-seen (#/255) Nexthop           [outgoingIF]
-    #  * 36:55:8e:bd:5a:a5    0.539s   (182) 36:55:8e:bd:5a:a5 [   veth1-2]
+# Reads active route quality specifically for a target MAC or active destination
+def read_active_quality(netns="vnode1", target_mac="7a:62:86:7e:cb:bb"):
     output = run_cmd(f"sudo ip netns exec {netns} batctl o")
 
-    # Check each line of the table
     for line in output.split('\n'):
-        # Looks for the * marking the route batman is using
+        # Match lines marked with '*' (active route)
         if line.strip().startswith("*"):
-            # Searches for Link quality (#) / 255
-            match = re.search(r"\((\d+)\)", line) 
-            if match: 
-                # Returns the numerator of the function 
-                return int(match.group(1))
-    # Untraceable
-    return None
+            # Ensure we are parsing the row for vnode2
+            if target_mac and target_mac not in line:
+                continue
 
-def export_data(loss_levels=[10, 30, 50]):
+            parts = line.split()
+            tq_match = re.search(r"\((\d+)\)", line) 
+            tq = int(tq_match.group(1)) if tq_match else None
+            
+            nexthop = parts[3] if len(parts) > 3 else "unknown"
+            
+            outgoing_if_match = re.search(r"\[\s*(\S+)\s*\]", line)
+            outgoing_if = outgoing_if_match.group(1) if outgoing_if_match else "unknown"
+
+            return tq, nexthop, outgoing_if
+
+    return None, "None", "None"
+
+def export_data(loss_levels=[10, 30, 50, 100]):
     # How long each phase lasts, in seconds (placeholders for testing)
     BASELINE_S = 30     # Time of clean link
     DEGRADE_S = 120     # Time loss is applied
@@ -99,7 +105,7 @@ def export_data(loss_levels=[10, 30, 50]):
         with open(filename, "w", newline="") as file:
             # Write all data at once
             writer = csv.writer(file)
-            writer.writerow(["time_s", "TQ", "loss_pct"])
+            writer.writerow(["time_s", "TQ", "loss_pct", "nexthop", "outgoing_if"])
 
             elapsed = 0 # Elapsed time of exp
             while elapsed < total_s:
@@ -116,15 +122,16 @@ def export_data(loss_levels=[10, 30, 50]):
                     curr_loss = 0
 
                 # Measure and record one row
-                tq = read_transmit_quality("vnode1")
-                writer.writerow([round(elapsed, 1), tq, curr_loss])
+                # Measure and record one row for vnode2's MAC
+                tq, nexthop, outgoing_if = read_active_quality("vnode1", target_mac="7a:62:86:7e:cb:bb")
+                writer.writerow([round(elapsed, 1), tq, curr_loss, nexthop, outgoing_if])
                 file.flush() # Write lagging data
 
                 # ADelay 1 second and update elapsed
                 time.sleep(1)
                 elapsed = time.time() - start
 
-            print(f"[SUCCESS] Saved data to {filename}")
+        print(f"[SUCCESS] Saved data to {filename}")
     
         
 if __name__ == "__main__":

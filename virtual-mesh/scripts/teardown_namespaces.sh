@@ -12,5 +12,7 @@ sudo ip netns del vnode6 2>/dev/null || true
 
 echo "[-] Removing leftover veth pairs..."
 sudo ip link del veth1-2 2>/dev/null || true
+sudo ip link del veth1-3 2>/dev/null || true
+sudo ip link del veth2-3 2>/dev/null || true
 
 echo "[+] Cleanup complete. Environment reset!"
