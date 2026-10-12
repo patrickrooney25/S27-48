@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 import os
 from matplotlib.lines import Line2D
 
+# Sorts the legend by increasing loss applied
+def loss_value(path):
+    name = os.path.basename(path)
+    return int(name.replace("TQ_EXP_loss", "").replace(".csv", ""))
+
 def generate_comparison_plot():
     csv_files = glob.glob("TQ_EXPS/TQ_EXP_loss*.csv")
     if not csv_files:
@@ -14,7 +19,7 @@ def generate_comparison_plot():
     
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 7), sharex=True, gridspec_kw={'height_ratios': [2, 1]})
 
-    for file in sorted(csv_files):
+    for file in sorted(csv_files, key = loss_value):
         df = pd.read_csv(file)
         run_label = os.path.basename(file).replace("TQ_EXP_loss", "").replace(".csv", "")
         
@@ -25,12 +30,13 @@ def generate_comparison_plot():
         on_rows = df[df["loss_pct"] > 0]
         if not on_rows.empty:
             on_row = on_rows.iloc[0]
-            ax1.scatter(on_row["time_s"], on_row["TQ"], s=90, color=line.get_color(), zorder=3)
+            print(run_label, on_row["time_s"], on_row["TQ"])
+            ax1.scatter(on_row["time_s"], on_row["TQ"], s=30, color=line.get_color(), zorder=3)
             
             off_rows = df[(df["time_s"] > on_row["time_s"]) & (df["loss_pct"] == 0)]
             if not off_rows.empty:
                 off_row = off_rows.iloc[0]
-                ax1.scatter(off_row["time_s"], off_row["TQ"], s=90, facecolors="white", edgecolors=line.get_color(), linewidths=2, zorder=3)
+                ax1.scatter(off_row["time_s"], off_row["TQ"], s=30, facecolors="white", edgecolors=line.get_color(), linewidths=2, zorder=3)
 
         # 3. Plot Interface Rerouting (0 = Direct veth1-2, 1 = Backup veth1-3 via vnode3)
         if "outgoing_if" in df.columns:
@@ -47,7 +53,7 @@ def generate_comparison_plot():
     # Formatting Top Plot (TQ)
     ax1.set_title("batman-adv Transmit Quality (TQ) & Reroute Comparison")
     ax1.set_ylabel("Transmit Quality (TQ/255)")
-    ax1.set_ylim(-10, 270)
+    ax1.set_ylim(210, 260)
     ax1.grid(True, linestyle=":", alpha=0.6)
     ax1.legend(handles, labels, loc="lower left")
 
