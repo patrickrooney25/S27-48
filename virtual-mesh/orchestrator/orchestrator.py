@@ -140,8 +140,8 @@ def export_data(loss_levels=[10, 30, 50, 100]):
         raise SystemExit(f"[FATAL] Could not read bat0 MAC in vnode{DST}")
                          
     for loss_pct in loss_levels:
-        filename = f"TQ_EXPS/TQ_EXP_loss{loss_pct}.csv"
-        print(f"\n--- Starting TQ Experiment for {loss_pct}% Loss ---")
+        filename = f"TQ_EXPS/TQ_EXP_loss{SRC}-{DST}_loss{loss_pct}.csv"
+        print(f"\n--- Starting TQ Experiment for {SRC}-{DST}_{loss_pct}% Loss ---")
 
         curr_loss = 0   # Switch for applying loss later
         start = time.time() # When the start was

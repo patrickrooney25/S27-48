@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import glob
+import os
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
 from matplotlib.lines import Line2D
 
 # Sorts the legend by increasing loss applied
@@ -38,9 +39,9 @@ def generate_comparison_plot():
                 off_row = off_rows.iloc[0]
                 ax1.scatter(off_row["time_s"], off_row["TQ"], s=30, facecolors="white", edgecolors=line.get_color(), linewidths=2, zorder=3)
 
-        # 3. Plot Interface Rerouting (0 = Direct veth1-2, 1 = Backup veth1-3 via vnode3)
+        # 3. Plot Interface Rerouting (0 = Direct veth1-2, 1 = Backup veth1-4 via vnode3)
         if "outgoing_if" in df.columns:
-            if_numeric = df["outgoing_if"].apply(lambda x: 1 if "1-3" in str(x) else 0)
+            if_numeric = df["outgoing_if"].apply(lambda x: 1 if "1-4" in str(x) else 0)
             ax2.step(df["time_s"], if_numeric, where="mid", alpha=0.8, label=f"{run_label}% Loss")
 
     # Construct legend handles outside the loop to avoid duplicate entries
@@ -59,7 +60,7 @@ def generate_comparison_plot():
 
     # Formatting Bottom Plot (Interface Switch)
     ax2.set_yticks([0, 1])
-    ax2.set_yticklabels(["veth1-2 (Direct)", "veth1-3 (vnode3 Relay)"])
+    ax2.set_yticklabels(["veth1-2 (Direct)", "veth1-4 (vnode4 Relay)"])
     ax2.set_xlabel("Elapsed Time (seconds)")
     ax2.set_ylabel("Active Interface")
     ax2.grid(True, linestyle=":", alpha=0.6)
