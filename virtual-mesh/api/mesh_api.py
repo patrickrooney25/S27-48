@@ -11,6 +11,7 @@ import subprocess
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, Field
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
     title="Mesh Telemetry & Fault Control API",
@@ -269,6 +270,14 @@ def get_live_mesh_kml():
         media_type="application/vnd.google-earth.kml+xml",
         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
     )
+
+
+# --- Mount Static Dashboard UI ---
+import os
+
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+
 
 
 if __name__ == "__main__":
