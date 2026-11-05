@@ -5,15 +5,19 @@ set -e #safe exit on error
 
 #configure node 1
 echo "Configuring batman-adv on vnode1..."
-#take down veth 1-2  and 1-4 to modify driver bindings
+#take down veth 1-2  and 1-4 and msh0 (mesh uplink to br-mesh) to modify driver bindings
 ip netns exec vnode1 ip link set veth1-2 down
 ip netns exec vnode1 ip link set veth1-4 down
-#attach v1-2 as a physical interface under bat0 mesh routing
+ip netns exec vnode1 ip link set msh0 down
+#attach v1-2 and v1-4 as a physical interface under bat0 mesh routing
 ip netns exec vnode1 batctl meshif bat0 interface add veth1-2
 ip netns exec vnode1 batctl meshif bat0 interface add veth1-4
+#attatch msh0 so vnode1 acts as a gateway, sending/receiving mesh frames through br-mesh toward the physical nodes
+ip netns exec vnode1 batctl meshif bat0 interface add msh0
 #bring underlying veth interface back online to send/receive frames
 ip netns exec vnode1 ip link set veth1-2 up
 ip netns exec vnode1 ip link set veth1-4 up
+ip netns exec vnode1 ip link set msh0 up
 #bring up bat0 virtual mesh interface inside vnode1 namespace
 ip netns exec vnode1 ip link set bat0 up
 
@@ -48,12 +52,15 @@ echo "Configuring batman-adv on vnode4..."
 ip netns exec vnode4 ip link set veth4-1 down
 ip netns exec vnode4 ip link set veth4-2 down
 ip netns exec vnode4 ip link set veth4-5 down
+ip netns exec vnode4 ip link set msh0 down
 ip netns exec vnode4 batctl meshif bat0 interface add veth4-1
 ip netns exec vnode4 batctl meshif bat0 interface add veth4-2
 ip netns exec vnode4 batctl meshif bat0 interface add veth4-5
+ip netns exec vnode4 batctl meshif bat0 interface add msh0
 ip netns exec vnode4 ip link set veth4-1 up
 ip netns exec vnode4 ip link set veth4-2 up
 ip netns exec vnode4 ip link set veth4-5 up
+ip netns exec vnode4 ip link set msh0 up
 ip netns exec vnode4 ip link set bat0 up
 
 #configure node 5
