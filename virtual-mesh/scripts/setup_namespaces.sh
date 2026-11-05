@@ -83,4 +83,29 @@ sudo ip netns exec vnode6 ip link set dev lo up
 sudo ip netns exec vnode6 ip link set dev veth6-3 up
 sudo ip netns exec vnode6 ip link set dev veth6-5 up
 
+echo "[+] Creating control bridge br-ctrl (10.10.0.1/24)..."
+sudo ip link add br-ctrl type bridge
+sudo ip addr add 10.10.0.1/24 dev br-ctrl
+sudo ip link set br-ctrl up
+
 echo "[+] Success. vnode1-vnode6 are created and connected."
+
+echo "[+] Attaching each vnode to br-ctrl..."
+for N in {1..6}; do
+    #create veth control cable for nodes to attach to br-ctrl 
+    #(br-ctrl <- vc# <-> vc#-ns -> node#)
+    sudo ip link add vc$N type veth peer name vc$N-ns
+    
+    #attatch root end (vc#) into bridge and turn on 
+    sudo ip link set vc$N master br-ctrl
+    sudo ip link set vc$N up
+
+    #attach other end (vc#-ns) to node so plug can be inside namepsace
+    #rename to ctl0 so all nodes can be connected simply to one root
+    sudo ip link set vc$N-ns netns vnode$N name ctl0
+
+    #give it an address (10.10.0.11 .. 10.10.0.16) and turn it on
+    sudo ip netns exec vnode$N ip addr add 10.10.0.$((10 + N))/24 dev ctl0
+    sudo ip netns exec vnode$N ip link set dev ctl0 up
+done
+
