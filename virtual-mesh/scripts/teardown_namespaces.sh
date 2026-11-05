@@ -21,4 +21,11 @@ sudo ip link del vc6 2>/dev/null || true
 echo "[-] Removing control bridge br-ctrl..."
 sudo ip link del br-ctrl 2>/dev/null || true
 
+echo "[-] Removing leftover mesh veths (root side)..."
+sudo ip link del vm1 2>/dev.null || true
+sudo ip link del vm4 2>/dev.null || true
+
+echo "[-] Removing mesh bridge br-mesh..."
+sudo ip link del br-mesh 2>/dev/null || true
+
 echo "[+] Cleanup complete. Environment reset!"

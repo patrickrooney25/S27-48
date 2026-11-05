@@ -83,12 +83,12 @@ sudo ip netns exec vnode6 ip link set dev lo up
 sudo ip netns exec vnode6 ip link set dev veth6-3 up
 sudo ip netns exec vnode6 ip link set dev veth6-5 up
 
+echo "[+] Success. vnode1-vnode6 are created and connected."
+
 echo "[+] Creating control bridge br-ctrl (10.10.0.1/24)..."
 sudo ip link add br-ctrl type bridge
 sudo ip addr add 10.10.0.1/24 dev br-ctrl
 sudo ip link set br-ctrl up
-
-echo "[+] Success. vnode1-vnode6 are created and connected."
 
 echo "[+] Attaching each vnode to br-ctrl..."
 for N in {1..6}; do
@@ -101,11 +101,38 @@ for N in {1..6}; do
     sudo ip link set vc$N up
 
     #attach other end (vc#-ns) to node so plug can be inside namepsace
-    #rename to ctl0 so all nodes can be connected simply to one root
+    #rename to ctl0 (control intferface 0) so all nodes can be connected simply to one root
     sudo ip link set vc$N-ns netns vnode$N name ctl0
 
     #give it an address (10.10.0.11 .. 10.10.0.16) and turn it on
     sudo ip netns exec vnode$N ip addr add 10.10.0.$((10 + N))/24 dev ctl0
     sudo ip netns exec vnode$N ip link set dev ctl0 up
 done
+
+echo "[+] Success. vnode1-vnode6 are connected to control bridge ctl0."
+
+echo "[+] Creating mesh bridge br-mesh (layer 2 only, no IP)..."
+sudo ip link add br-mesh type bridge
+sudo ip link set br-mesh up
+
+echo "[+] Attaching gateway vnodes (1 & 4) to br-mesh..."
+for N in 1 4; do
+    #create veth mesh cable for nodes to attach to br-mesh
+    #(br-mesh <- vm# <-> vm#-ns -> node#)
+    sudo ip link add vm$N type veth peer name vm$N-ns
+    
+    #attatch root end (vm#) into bridge and turn on 
+    sudo ip link set vm$N master br-mesh
+    #isolate so v1 & v4 dont communicate through the bridge
+    sudo bridge link set dev vm$N isolated on 
+    sudo ip link set vm$N up
+
+    #attach other end (vm#-ns) to node so plug can be inside namepsace
+    #rename to ctl0 so all nodes can be connected simply to one root
+    sudo ip link set vm$N-ns netns vnode$N name msh0
+    sudo ip netns exec vnode$N ip link set dev msh0 up
+done
+
+echo "[+] Success. Gateway nodes are connected to the mesh bridge."
+
 
