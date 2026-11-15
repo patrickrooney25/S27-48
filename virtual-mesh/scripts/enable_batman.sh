@@ -1,89 +1,33 @@
-#bind batman (bat0) inside namespaces
-
 #!/bin/bash
-set -e #safe exit on error
+# Bind batman-adv (bat0) inside namespaces using B.A.T.M.A.N. V
+set -e
 
-#configure node 1
-echo "Configuring batman-adv on vnode1..."
-#take down veth 1-2  and 1-4 and msh0 (mesh uplink to br-mesh) to modify driver bindings
-ip netns exec vnode1 ip link set veth1-2 down
-ip netns exec vnode1 ip link set veth1-4 down
-ip netns exec vnode1 ip link set msh0 down
-#attach v1-2 and v1-4 as a physical interface under bat0 mesh routing
-ip netns exec vnode1 batctl meshif bat0 interface add veth1-2
-ip netns exec vnode1 batctl meshif bat0 interface add veth1-4
-#attatch msh0 so vnode1 acts as a gateway, sending/receiving mesh frames through br-mesh toward the physical nodes
-ip netns exec vnode1 batctl meshif bat0 interface add msh0
-#bring underlying veth interface back online to send/receive frames
-ip netns exec vnode1 ip link set veth1-2 up
-ip netns exec vnode1 ip link set veth1-4 up
-ip netns exec vnode1 ip link set msh0 up
-#bring up bat0 virtual mesh interface inside vnode1 namespace
-ip netns exec vnode1 ip link set bat0 up
+sudo modprobe batman-adv
 
-#configure node 2
-echo "Configuring batman-adv on vnode2..."
-ip netns exec vnode2 ip link set veth2-1 down
-ip netns exec vnode2 ip link set veth2-3 down
-ip netns exec vnode2 ip link set veth2-4 down
-ip netns exec vnode2 ip link set veth2-5 down
-ip netns exec vnode2 batctl meshif bat0 interface add veth2-1
-ip netns exec vnode2 batctl meshif bat0 interface add veth2-3
-ip netns exec vnode2 batctl meshif bat0 interface add veth2-4
-ip netns exec vnode2 batctl meshif bat0 interface add veth2-5
-ip netns exec vnode2 ip link set veth2-1 up
-ip netns exec vnode2 ip link set veth2-3 up
-ip netns exec vnode2 ip link set veth2-4 up
-ip netns exec vnode2 ip link set veth2-5 up
-ip netns exec vnode2 ip link set bat0 up
+configure_node() {
+    local NODE=$1
+    shift
+    local IFACES=("$@")
 
-#configure node 3
-echo "Configuring batman-adv on vnode3..."
-ip netns exec vnode3 ip link set veth3-2 down
-ip netns exec vnode3 ip link set veth3-6 down
-ip netns exec vnode3 batctl meshif bat0 interface add veth3-2
-ip netns exec vnode3 batctl meshif bat0 interface add veth3-6
-ip netns exec vnode3 ip link set veth3-2 up
-ip netns exec vnode3 ip link set veth3-6 up
-ip netns exec vnode3 ip link set bat0 up
+    echo "Configuring B.A.T.M.A.N. V on $NODE..."
 
-#configure node 4
-echo "Configuring batman-adv on vnode4..."
-ip netns exec vnode4 ip link set veth4-1 down
-ip netns exec vnode4 ip link set veth4-2 down
-ip netns exec vnode4 ip link set veth4-5 down
-ip netns exec vnode4 ip link set msh0 down
-ip netns exec vnode4 batctl meshif bat0 interface add veth4-1
-ip netns exec vnode4 batctl meshif bat0 interface add veth4-2
-ip netns exec vnode4 batctl meshif bat0 interface add veth4-5
-ip netns exec vnode4 batctl meshif bat0 interface add msh0
-ip netns exec vnode4 ip link set veth4-1 up
-ip netns exec vnode4 ip link set veth4-2 up
-ip netns exec vnode4 ip link set veth4-5 up
-ip netns exec vnode4 ip link set msh0 up
-ip netns exec vnode4 ip link set bat0 up
+    # Set routing algorithm to BATMAN_V BEFORE creating bat0
+    sudo ip netns exec "$NODE" batctl routing_algo BATMAN_V
 
-#configure node 5
-echo "Configuring batman-adv on vnode5..."
-ip netns exec vnode5 ip link set veth5-2 down
-ip netns exec vnode5 ip link set veth5-4 down
-ip netns exec vnode5 ip link set veth5-6 down
-ip netns exec vnode5 batctl meshif bat0 interface add veth5-2
-ip netns exec vnode5 batctl meshif bat0 interface add veth5-4
-ip netns exec vnode5 batctl meshif bat0 interface add veth5-6
-ip netns exec vnode5 ip link set veth5-2 up
-ip netns exec vnode5 ip link set veth5-4 up
-ip netns exec vnode5 ip link set veth5-6 up
-ip netns exec vnode5 ip link set bat0 up
+    for IFACE in "${IFACES[@]}"; do
+        sudo ip netns exec "$NODE" ip link set "$IFACE" down
+        sudo ip netns exec "$NODE" batctl meshif bat0 interface add "$IFACE"
+        sudo ip netns exec "$NODE" ip link set "$IFACE" up
+    done
 
-#configure node 6
-echo "Configuring batman-adv on vnode6..."
-ip netns exec vnode6 ip link set veth6-3 down
-ip netns exec vnode6 ip link set veth6-5 down
-ip netns exec vnode6 batctl meshif bat0 interface add veth6-3
-ip netns exec vnode6 batctl meshif bat0 interface add veth6-5
-ip netns exec vnode6 ip link set veth6-3 up
-ip netns exec vnode6 ip link set veth6-5 up
-ip netns exec vnode6 ip link set bat0 up
+    sudo ip netns exec "$NODE" ip link set bat0 up
+}
 
-echo "Batman-adv setup complete"
+configure_node vnode1 veth1-2 veth1-4 msh0
+configure_node vnode2 veth2-1 veth2-3 veth2-4 veth2-5
+configure_node vnode3 veth3-2 veth3-6
+configure_node vnode4 veth4-1 veth4-2 veth4-5 msh0
+configure_node vnode5 veth5-2 veth5-4 veth5-6
+configure_node vnode6 veth6-3 veth6-5
+
+echo "B.A.T.M.A.N. V setup complete"

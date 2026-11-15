@@ -1,203 +1,1406 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Mesh Network Operations & Control Console</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mesh Control &amp; Telemetry Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --good: #22c55e;
-      --degraded: #f97316;
-      --poor: #ef4444;
-      --accent: #38bdf8;
+      --bg-canvas: #080c14;
+      --bg-card: #0f1623;
+      --bg-elevated: #161f30;
+      --bg-input: #0b111c;
+      --border: #1e293b;
+      --border-subtle: #172031;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --emerald: #10b981;
+      --emerald-bg: rgba(16, 185, 129, 0.14);
+      --emerald-border: rgba(16, 185, 129, 0.35);
+      --cyan: #38bdf8;
+      --cyan-bg: rgba(56, 189, 248, 0.14);
+      --cyan-border: rgba(56, 189, 248, 0.35);
+      --amber: #f59e0b;
+      --amber-bg: rgba(245, 158, 11, 0.14);
+      --amber-border: rgba(245, 158, 11, 0.38);
+      --crimson: #ef4444;
+      --crimson-solid: #ef4444;
+      --crimson-bg: rgba(239, 68, 68, 0.14);
+      --crimson-border: rgba(239, 68, 68, 0.38);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: monospace, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 20px; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 15px; }
-    h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
-    th { color: var(--text-muted); }
-    .badge { padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-    .badge-good { background: rgba(34, 197, 94, 0.2); color: var(--good); }
-    .badge-degraded { background: rgba(249, 115, 22, 0.2); color: var(--degraded); }
-    .badge-poor { background: rgba(239, 68, 68, 0.2); color: var(--poor); }
-    .form-group { margin-bottom: 12px; }
-    label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
-    select, input[type="range"], input[type="number"] { width: 100%; padding: 6px; background: #0f172a; border: 1px solid var(--border); color: var(--text); border-radius: 4px; }
-    .btn-row { display: flex; gap: 10px; margin-top: 15px; }
-    button { flex: 1; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-impair { background: #dc2626; color: white; }
-    .btn-reset { background: #475569; color: white; }
-    button:hover { opacity: 0.9; }
-    #log { height: 120px; overflow-y: auto; background: #0b1120; border: 1px solid var(--border); padding: 8px; font-size: 0.75rem; border-radius: 4px; }
-    .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; background: var(--good); }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 22px 28px 18px;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    /* Top Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .pulse-ring {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.92); }
+    }
+
+    .brand h1 {
+      font-size: 1.28rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .brand-sub {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .kpi-pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .kpi-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+    }
+
+    .btn-reset-all {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-reset-all:hover {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: var(--crimson);
+      color: #fff;
+    }
+
+    /* Failover Alert Banner */
+    .alert-banner {
+      display: none;
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.14), rgba(245, 158, 11, 0.07));
+      border: 1px solid var(--amber-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 18px;
+    }
+
+    .alert-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .alert-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .alert-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid var(--amber-border);
+      color: var(--amber);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .alert-title {
+      color: #fbbf24;
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+
+    .alert-detail {
+      color: #fde68a;
+      font-size: 0.8rem;
+    }
+
+    .alert-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 6px;
+    }
+
+    .alert-close:hover {
+      color: #fff;
+    }
+
+    .alert-progress-track {
+      height: 3px;
+      background: rgba(245, 158, 11, 0.16);
+      border-radius: 99px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .alert-progress-fill {
+      height: 100%;
+      width: 100%;
+      background: var(--amber);
+      transition: width 1s linear;
+    }
+
+    /* Breadcrumb Subbar */
+    .subbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      font-size: 0.74rem;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .breadcrumb span.active {
+      color: var(--text-secondary);
+      text-transform: none;
+      letter-spacing: normal;
+      font-size: 0.8rem;
+    }
+
+    .subbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--text-muted);
+    }
+
+    .live-indicator {
+      color: var(--emerald);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Main 2-Column Grid */
+    .workspace {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 20px;
+      flex: 1;
+      align-items: start;
+    }
+
+    @media (max-width: 1120px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .card-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    .live-pill {
+      background: var(--emerald-bg);
+      border: 1px solid var(--emerald-border);
+      color: var(--emerald);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Filter & Search Bar */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .filter-tabs {
+      display: inline-flex;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+
+    .search-box {
+      position: relative;
+      min-width: 220px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px 6px 30px;
+      color: var(--text-primary);
+      font-size: 0.76rem;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: var(--cyan);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      pointer-events: none;
+    }
+
+    /* Routing Table */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th.right, td.right {
+      text-align: right;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.12s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    tbody tr.rerouted-row {
+      background: rgba(56, 189, 248, 0.04);
+    }
+
+    tbody tr.rerouted-row td:first-child {
+      border-left: 2px solid var(--cyan);
+    }
+
+    td {
+      padding: 11px 12px;
+      font-size: 0.8rem;
+      vertical-align: middle;
+    }
+
+    .pair-cell {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .pair-arrow {
+      color: var(--text-muted);
+      margin: 0 5px;
+    }
+
+    .iface-tag {
+      display: inline-block;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+
+    .route-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.73rem;
+      font-weight: 600;
+    }
+
+    .route-direct {
+      background: var(--emerald-bg);
+      border: 1px solid var(--emerald-border);
+      color: #34d399;
+    }
+
+    .route-rerouted {
+      background: var(--cyan-bg);
+      border: 1px solid var(--cyan-border);
+      color: var(--cyan);
+    }
+
+    .throughput-val {
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: var(--text-primary);
+    }
+
+    .throughput-rerouted {
+      color: var(--cyan);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .status-optimal {
+      background: var(--emerald-bg);
+      border: 1px solid var(--emerald-border);
+      color: #34d399;
+    }
+
+    .status-degraded {
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-border);
+      color: #fbbf24;
+    }
+
+    .status-poor {
+      background: var(--crimson-bg);
+      border: 1px solid var(--crimson-border);
+      color: #f87171;
+    }
+
+    .status-pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .table-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 10px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-counts {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    .count-direct { color: var(--emerald); }
+    .count-rerouted { color: var(--cyan); }
+
+    /* Fault Injection Controller */
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    select {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select:focus {
+      border-color: var(--cyan);
+    }
+
+    /* Bidirectional Toggle Card */
+    .toggle-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .toggle-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .toggle-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .toggle-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-state {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--emerald);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider-switch {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #1e293b;
+      border-radius: 999px;
+      transition: 0.2s;
+    }
+
+    .slider-switch:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+
+    .switch input:checked + .slider-switch {
+      background-color: var(--emerald);
+    }
+
+    .switch input:checked + .slider-switch:before {
+      transform: translateX(18px);
+    }
+
+    /* Packet Loss Slider */
+    .slider-group {
+      margin-bottom: 14px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .loss-badge {
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-border);
+      color: #fbbf24;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 6px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--amber) 100%, #1e293b 100%);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--amber);
+      border: 2px solid #fff;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+      cursor: pointer;
+    }
+
+    .slider-scale {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    /* Inline Latency Row */
+    .latency-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .latency-input-wrap {
+      display: flex;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      width: 125px;
+    }
+
+    .latency-input-wrap input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      outline: none;
+    }
+
+    .latency-unit {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: grid;
+      grid-template-columns: 1.15fr 1.15fr 0.95fr;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .btn-sever {
+      background: var(--crimson-solid);
+      border: 1px solid #f87171;
+      color: #fff;
+    }
+
+    .btn-sever:hover {
+      background: #dc2626;
+    }
+
+    .btn-custom {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid var(--amber-border);
+      color: #fbbf24;
+    }
+
+    .btn-custom:hover {
+      background: rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-restore {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+
+    .btn-restore:hover {
+      border-color: var(--text-secondary);
+    }
+
+    /* Active Netem Faults */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .fault-count-badge {
+      background: var(--crimson-bg);
+      border: 1px solid var(--crimson-border);
+      color: #fca5a5;
+      font-size: 0.7rem;
+      padding: 1px 7px;
+      border-radius: 5px;
+    }
+
+    .section-hint {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .fault-pills-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+      min-height: 34px;
+    }
+
+    .fault-pill {
+      background: var(--crimson-bg);
+      border: 1px solid var(--crimson-border);
+      color: #fca5a5;
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 0.73rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .fault-pill button {
+      background: none;
+      border: none;
+      color: #fca5a5;
+      cursor: pointer;
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0 2px;
+    }
+
+    .fault-pill button:hover {
+      color: #fff;
+    }
+
+    .no-faults {
+      grid-column: 1 / -1;
+      background: var(--bg-input);
+      border: 1px dashed var(--border);
+      border-radius: 7px;
+      padding: 7px 10px;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    /* Demo Action Log */
+    .log-box {
+      background: #060911;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      height: 92px;
+      overflow-y: auto;
+      font-size: 0.72rem;
+      line-height: 1.55;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-ts { color: var(--text-muted); }
+    .log-tag-fault { color: #f87171; font-weight: 700; }
+    .log-tag-route { color: var(--cyan); font-weight: 700; }
+    .log-tag-reset { color: var(--emerald); font-weight: 700; }
+    .log-msg { color: var(--text-secondary); }
+
+    /* Bottom Footer */
+    footer {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-left, .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .footer-status {
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
   </style>
 </head>
 <body>
 
+  <!-- Top Header Bar -->
   <header>
-    <div>
-      <h1>Mesh Control &amp; Telemetry Console</h1>
-      <small style="color: var(--text-muted);"><span class="status-dot" id="pollDot"></span>Polling daemon every 1s</small>
+    <div class="brand">
+      <div class="pulse-ring"><div class="pulse-dot"></div></div>
+      <div>
+        <h1>Mesh Control &amp; Telemetry Console</h1>
+        <div class="brand-sub">B.A.T.M.A.N. V Live Telemetry &bull; 1s Poll</div>
+      </div>
     </div>
-    <div id="summary">Nodes: <span id="nodeCount">0</span> | Links: <span id="linkCount">0</span></div>
+
+    <div class="header-controls">
+      <div class="kpi-pill"><span class="kpi-dot"></span><span id="nodeCount">6</span> Active Nodes</div>
+      <div class="kpi-pill"><span id="linkCount">15</span> Active Paths</div>
+      <div class="kpi-pill mono">Protocol: BATMAN_V</div>
+      <button class="btn-reset-all" onclick="resetAllMesh()">&#8634; Reset All Mesh Faults</button>
+    </div>
   </header>
 
-  <div class="grid">
-    <!-- Telemetry Column -->
-    <div class="card">
-      <h2>Live Link Telemetry</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Link</th>
-            <th>Egress IF</th>
-            <th>TQ Metric</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="linksBody">
-          <tr><td colspan="4">Awaiting telemetry poll...</td></tr>
-        </tbody>
-      </table>
+  <!-- Dismissible Failover Banner -->
+  <div id="convergenceBanner" class="alert-banner">
+    <div class="alert-top">
+      <div class="alert-left">
+        <div class="alert-icon">!</div>
+        <span class="alert-title">B.A.T.M.A.N. V Failover in Progress:</span>
+        <span id="bannerText" class="alert-detail mono">vnode1:veth1-2 &mdash; ELP neighbor purge in ~6s...</span>
+      </div>
+      <button class="alert-close" onclick="dismissBanner()" title="Dismiss">&times;</button>
     </div>
-
-    <!-- Fault Injection Column -->
-    <div class="card">
-      <h2>Fault Injection Controller</h2>
-      <div class="form-group">
-        <label>Target Node</label>
-        <select id="nodeSelect">
-          <option value="vnode1">vnode1</option>
-          <option value="vnode2">vnode2</option>
-          <option value="vnode3">vnode3</option>
-          <option value="vnode4">vnode4</option>
-          <option value="vnode5">vnode5</option>
-          <option value="vnode6">vnode6</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Egress Interface</label>
-        <select id="ifaceSelect">
-          <option value="veth1-2">veth1-2</option>
-          <option value="veth1-4">veth1-4</option>
-          <option value="veth2-1">veth2-1</option>
-          <option value="veth2-3">veth2-3</option>
-          <option value="veth2-4">veth2-4</option>
-          <option value="veth3-2">veth3-2</option>
-          <option value="veth3-6">veth3-6</option>
-          <option value="veth4-1">veth4-1</option>
-          <option value="veth4-2">veth4-2</option>
-          <option value="veth4-5">veth4-5</option>
-          <option value="veth5-4">veth5-4</option>
-          <option value="veth5-6">veth5-6</option>
-          <option value="veth6-3">veth6-3</option>
-          <option value="veth6-5">veth6-5</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Packet Loss (%): <span id="lossVal">0</span>%</label>
-        <input type="range" id="lossInput" min="0" max="100" value="0" oninput="document.getElementById('lossVal').innerText = this.value">
-      </div>
-
-      <div class="form-group">
-        <label>Latency Delay (ms)</label>
-        <input type="number" id="delayInput" min="0" max="2000" value="0">
-      </div>
-
-      <div class="btn-row">
-        <button class="btn-impair" onclick="applyImpairment()">Apply Impairment</button>
-        <button class="btn-reset" onclick="resetInterface()">Clear Impairment</button>
-      </div>
-
-      <h2 style="margin-top: 15px;">Action Log</h2>
-      <div id="log"></div>
+    <div class="alert-progress-track">
+      <div id="bannerProgress" class="alert-progress-fill"></div>
     </div>
   </div>
 
+  <!-- Sub-Header Breadcrumb Bar -->
+  <div class="subbar">
+    <div class="breadcrumb">
+      <span>NETWORK OPERATIONS</span>
+      <span>/</span>
+      <span class="active">Mesh overview</span>
+    </div>
+    <div class="subbar-right mono">
+      <span class="live-indicator"><span class="kpi-dot"></span> LIVE</span>
+      <span id="lastUpdated">Updated --:--:-- UTC</span>
+    </div>
+  </div>
+
+  <!-- Main Two-Column Workspace -->
+  <main class="workspace">
+    <!-- Left Card: Live Routing & Throughput -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Live Routing &amp; Throughput</div>
+          <div class="card-subtitle">Originator routes across the mesh backbone</div>
+        </div>
+        <div class="live-pill mono"><span class="kpi-dot"></span> LIVE</div>
+      </div>
+
+      <div class="toolbar">
+        <div class="filter-tabs">
+          <button class="filter-btn active" data-filter="all" onclick="setRouteFilter('all', this)">All Paths</button>
+          <button class="filter-btn" data-filter="direct" onclick="setRouteFilter('direct', this)">Direct 1-Hop</button>
+          <button class="filter-btn" data-filter="rerouted" onclick="setRouteFilter('rerouted', this)">Rerouted</button>
+        </div>
+
+        <div class="search-box">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="searchInput" placeholder="Filter originator or interface" oninput="renderTable()" />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Originator Pair</th>
+              <th>Egress IF</th>
+              <th>Route Type</th>
+              <th class="right">Throughput</th>
+              <th class="right">Status</th>
+            </tr>
+          </thead>
+          <tbody id="linksBody">
+            <tr><td colspan="5" style="color: var(--text-muted); padding: 20px 12px;">Awaiting telemetry poll...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <div id="tableSummary">Showing 0 of 0 active paths</div>
+        <div class="footer-counts mono">
+          <span class="count-direct" id="directCountLabel">0 direct</span>
+          <span style="color: var(--text-muted);">/</span>
+          <span class="count-rerouted" id="reroutedCountLabel">0 rerouted</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Card: Fault Injection Controller -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Fault Injection Controller</div>
+          <div class="card-subtitle">Simulate link failures. Observe mesh resilience.</div>
+        </div>
+      </div>
+
+      <div class="form-row-2">
+        <div>
+          <label class="field-label" for="nodeSelect">Target Node</label>
+          <select id="nodeSelect" class="mono" onchange="syncInterfaceOptions()">
+            <option value="vnode1">vnode1</option>
+            <option value="vnode2">vnode2</option>
+            <option value="vnode3">vnode3</option>
+            <option value="vnode4">vnode4</option>
+            <option value="vnode5">vnode5</option>
+            <option value="vnode6">vnode6</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="field-label" for="ifaceSelect">Egress Interface</label>
+          <select id="ifaceSelect" class="mono">
+            <option value="veth1-2">veth1-2 (to vnode2)</option>
+            <option value="veth1-4">veth1-4 (to vnode4)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="toggle-box">
+        <div>
+          <div class="toggle-title">Bidirectional Link Fault</div>
+          <div class="toggle-desc">Apply to both ends of the selected link</div>
+        </div>
+        <div class="toggle-right">
+          <span id="bidirLabel" class="toggle-state mono">ON</span>
+          <label class="switch">
+            <input type="checkbox" id="bidirCheck" checked onchange="updateBidirLabel()" />
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="field-label" style="margin-bottom: 0;">Packet Loss (%)</span>
+          <span id="lossVal" class="loss-badge mono">100%</span>
+        </div>
+        <input type="range" id="lossInput" min="0" max="100" value="100" oninput="updateLossSlider(this.value)" />
+        <div class="slider-scale mono">
+          <span>0%</span>
+          <span>100%</span>
+        </div>
+      </div>
+
+      <div class="latency-row">
+        <span class="field-label" style="margin-bottom: 0;">Latency Delay (ms)</span>
+        <div class="latency-input-wrap mono">
+          <input type="number" id="delayInput" min="0" max="2000" value="0" />
+          <span class="latency-unit">ms</span>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn btn-sever" onclick="severSelectedLink()">Sever Link (100%)</button>
+        <button class="btn btn-custom" onclick="applyImpairment()">Apply Custom Loss</button>
+        <button class="btn btn-restore" onclick="resetInterface()">Restore Link</button>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">
+          <span>Active Netem Faults</span>
+          <span id="faultCountBadge" class="fault-count-badge mono">0</span>
+        </div>
+        <span class="section-hint">Click &times; to restore</span>
+      </div>
+
+      <div id="activeFaultsBox" class="fault-pills-grid">
+        <div class="no-faults mono">None (all mesh links healthy)</div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Demo Action Log</div>
+        <span class="section-hint mono">AUTOSCROLL ON</span>
+      </div>
+
+      <div id="log" class="log-box mono"></div>
+    </section>
+  </main>
+
+  <!-- Bottom Status Footer -->
+  <footer>
+    <div class="footer-left">
+      <span class="footer-status"><span class="kpi-dot"></span> Telemetry stream connected</span>
+      <span>&bull;</span>
+      <span class="mono">bat0</span>
+      <span>&bull;</span>
+      <span id="footerReachable">6 / 6 nodes reachable</span>
+    </div>
+    <div class="footer-right mono">
+      <span>Collector: mesh-gateway-01</span>
+      <span>v2026.11</span>
+    </div>
+  </footer>
+
   <script>
-    function logMsg(msg) {
+    const NODE_IFACES = {
+      vnode1: ["veth1-2", "veth1-4"],
+      vnode2: ["veth2-1", "veth2-3", "veth2-4", "veth2-5"],
+      vnode3: ["veth3-2", "veth3-6"],
+      vnode4: ["veth4-1", "veth4-2", "veth4-5"],
+      vnode5: ["veth5-2", "veth5-4", "veth5-6"],
+      vnode6: ["veth6-3", "veth6-5"]
+    };
+
+    let latestLinks = [];
+    let currentFilter = "all";
+    let convergenceTimer = null;
+
+    function syncInterfaceOptions(preferredIface = null) {
+      const node = document.getElementById("nodeSelect").value;
+      const select = document.getElementById("ifaceSelect");
+      const list = NODE_IFACES[node] || [];
+      select.innerHTML = "";
+      list.forEach(iface => {
+        const peerNum = iface.split("-")[1];
+        const opt = document.createElement("option");
+        opt.value = iface;
+        opt.textContent = `${iface} (to vnode${peerNum})`;
+        select.appendChild(opt);
+      });
+      if (preferredIface && list.includes(preferredIface)) {
+        select.value = preferredIface;
+      }
+    }
+
+    function updateBidirLabel() {
+      const checked = document.getElementById("bidirCheck").checked;
+      const lbl = document.getElementById("bidirLabel");
+      lbl.textContent = checked ? "ON" : "OFF";
+      lbl.style.color = checked ? "var(--emerald)" : "var(--text-muted)";
+    }
+
+    function updateLossSlider(val) {
+      const pct = Number(val);
+      document.getElementById("lossVal").textContent = `${pct}%`;
+      const slider = document.getElementById("lossInput");
+      slider.style.background = `linear-gradient(90deg, var(--amber) ${pct}%, #1e293b ${pct}%)`;
+    }
+
+    function setRouteFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderTable();
+    }
+
+    function dismissBanner() {
+      if (convergenceTimer) clearInterval(convergenceTimer);
+      document.getElementById("convergenceBanner").style.display = "none";
+    }
+
+    function startConvergenceBanner(label) {
+      const banner = document.getElementById("convergenceBanner");
+      const textEl = document.getElementById("bannerText");
+      const progEl = document.getElementById("bannerProgress");
+      let remaining = 6;
+      if (convergenceTimer) clearInterval(convergenceTimer);
+
+      banner.style.display = "block";
+      progEl.style.width = "100%";
+      textEl.innerHTML = `${label} &mdash; ELP neighbor purge in ~${remaining}s...`;
+
+      convergenceTimer = setInterval(() => {
+        remaining -= 1;
+        progEl.style.width = `${Math.max(0, (remaining / 6) * 100)}%`;
+        if (remaining > 0) {
+          textEl.innerHTML = `${label} &mdash; ELP neighbor purge in ~${remaining}s...`;
+        } else {
+          textEl.innerHTML = `${label} &mdash; Failover converged; traffic rerouted.`;
+          logMsg("ROUTE", `B.A.T.M.A.N. V converged failover around ${label}`);
+          clearInterval(convergenceTimer);
+          setTimeout(() => { banner.style.display = "none"; }, 4000);
+        }
+      }, 1000);
+    }
+
+    function logMsg(type, msg) {
       const log = document.getElementById("log");
-      const ts = new Date().toLocaleTimeString();
-      log.innerHTML = `[${ts}] ${msg}<br/>` + log.innerHTML;
+      const ts = new Date().toTimeString().split(" ")[0];
+      const tagClass = type === "FAULT" ? "log-tag-fault" : (type === "ROUTE" ? "log-tag-route" : "log-tag-reset");
+      const line = document.createElement("div");
+      line.className = "log-line";
+      line.innerHTML = `<span class="log-ts">${ts}</span><span class="${tagClass}">${type}</span><span class="log-msg">${msg}</span>`;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("linksBody");
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+
+      const directTotal = latestLinks.filter(l => l.is_direct).length;
+      const reroutedTotal = latestLinks.length - directTotal;
+      document.getElementById("directCountLabel").textContent = `${directTotal} direct`;
+      document.getElementById("reroutedCountLabel").textContent = `${reroutedTotal} rerouted`;
+
+      const filtered = latestLinks.filter(l => {
+        if (currentFilter === "direct" && !l.is_direct) return false;
+        if (currentFilter === "rerouted" && l.is_direct) return false;
+        if (query) {
+          const hay = `${l.source} ${l.target} ${l.egress_interface}`.toLowerCase();
+          if (!hay.includes(query)) return false;
+        }
+        return true;
+      });
+
+      document.getElementById("tableSummary").textContent = `Showing ${filtered.length} of ${latestLinks.length} active paths`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color: var(--text-muted); padding: 18px 12px;">No matching routes found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = "";
+      filtered.forEach(l => {
+        let statusClass = "status-optimal";
+        let statusLabel = "Optimal";
+        const metricText = l.metric_display || `${l.tq} / 255`;
+
+        if (l.metric_type === "THROUGHPUT_MBIT") {
+          const mbps = Number(l.metric_value ?? 0);
+          if (mbps < 2.0) {
+            statusClass = "status-poor";
+            statusLabel = "Poor";
+          } else if (mbps < 5.0) {
+            statusClass = "status-degraded";
+            statusLabel = "Degraded";
+          }
+        }
+
+        const routeBadge = l.is_direct
+          ? `<span class="route-pill route-direct">&#8599; Direct 1-Hop</span>`
+          : `<span class="route-pill route-rerouted">&#8627; Rerouted</span>`;
+
+        const tr = document.createElement("tr");
+        if (!l.is_direct) tr.classList.add("rerouted-row");
+
+        tr.innerHTML = `
+          <td class="pair-cell mono">${l.source}<span class="pair-arrow">&harr;</span>${l.target}</td>
+          <td><span class="iface-tag mono">${l.egress_interface}</span></td>
+          <td>${routeBadge}</td>
+          <td class="right mono throughput-val ${!l.is_direct ? 'throughput-rerouted' : ''}">${metricText}</td>
+          <td class="right"><span class="status-pill ${statusClass}"><span class="status-pill-dot"></span>${statusLabel}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function restoreSingleEndpoint(nodeId, iface) {
+      await fetch("/api/v1/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ node_id: nodeId, interface: iface, bidirectional: false })
+      });
+      logMsg("RESET", `Restored ${nodeId}:${iface}`);
+      fetchTopology();
     }
 
     async function fetchTopology() {
       try {
-        const res = await fetch('/api/v1/topology');
+        const res = await fetch("/api/v1/topology");
         if (!res.ok) return;
         const data = await res.json();
 
-        document.getElementById('nodeCount').innerText = data.nodes.length;
-        document.getElementById('linkCount').innerText = data.links.length;
+        const nodeTotal = data.nodes.length;
+        latestLinks = data.links || [];
 
-        const tbody = document.getElementById('linksBody');
-        tbody.innerHTML = '';
+        document.getElementById("nodeCount").textContent = nodeTotal;
+        document.getElementById("linkCount").textContent = latestLinks.length;
+        document.getElementById("footerReachable").textContent = `${nodeTotal} / ${nodeTotal} nodes reachable`;
 
-        data.links.forEach(l => {
-          let badgeClass = 'badge-good';
-          if (l.tq < 150) badgeClass = 'badge-poor';
-          else if (l.tq < 200) badgeClass = 'badge-degraded';
+        const nowUtc = new Date().toISOString().split("T")[1].split(".")[0];
+        document.getElementById("lastUpdated").textContent = `Updated ${nowUtc} UTC`;
 
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${l.source} &harr; ${l.target}</strong></td>
-            <td>${l.egress_interface}</td>
-            <td>${l.tq} / 255</td>
-            <td><span class="badge ${badgeClass}">${l.tq >= 200 ? 'Optimal' : l.tq >= 150 ? 'Degraded' : 'Poor'}</span></td>
-          `;
-          tbody.appendChild(tr);
-        });
+        const impairments = data.active_impairments || [];
+        document.getElementById("faultCountBadge").textContent = impairments.length;
+        const faultsBox = document.getElementById("activeFaultsBox");
+
+        if (impairments.length === 0) {
+          faultsBox.innerHTML = `<div class="no-faults mono">None (all mesh links healthy)</div>`;
+        } else {
+          faultsBox.innerHTML = impairments.map(f => {
+            const summary = f.loss_pct > 0 ? `${f.loss_pct}%` : `${f.delay_ms}ms`;
+            return `<div class="fault-pill mono">
+              <span>${f.node_id}:${f.interface} &bull; ${summary}</span>
+              <button onclick="restoreSingleEndpoint('${f.node_id}', '${f.interface}')" title="Restore">&times;</button>
+            </div>`;
+          }).join("");
+        }
+
+        renderTable();
       } catch (err) {
         console.error("Telemetry fetch failed:", err);
       }
     }
 
+    async function severSelectedLink() {
+      document.getElementById("lossInput").value = 100;
+      updateLossSlider(100);
+      document.getElementById("delayInput").value = 0;
+      await applyImpairment();
+    }
+
     async function applyImpairment() {
       const node = document.getElementById("nodeSelect").value;
       const iface = document.getElementById("ifaceSelect").value;
-      const loss = parseInt(document.getElementById("lossInput").value, 10);
-      const delay = parseInt(document.getElementById("delayInput").value, 10);
+      const loss = parseInt(document.getElementById("lossInput").value, 10) || 0;
+      const delay = parseInt(document.getElementById("delayInput").value, 10) || 0;
+      const bidirectional = document.getElementById("bidirCheck").checked;
 
-      const payload = {
-        node_id: node,
-        interface: iface,
-        loss_pct: loss,
-        delay_ms: delay,
-        jitter_ms: 0
-      };
-
-      const res = await fetch('/api/v1/impair', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const res = await fetch("/api/v1/impair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          node_id: node,
+          interface: iface,
+          loss_pct: loss,
+          delay_ms: delay,
+          jitter_ms: 0,
+          bidirectional: bidirectional
+        })
       });
       const data = await res.json();
-      logMsg(`Applied to ${node}:${iface} &rarr; loss:${loss}%, delay:${delay}ms`);
+      const targets = (data.targets || [`${node}:${iface}`]).join(" & ");
+      logMsg("FAULT", `${targets} loss=${loss}% delay=${delay}ms`);
+      if (loss === 100) {
+        startConvergenceBanner(`${node}:${iface}`);
+      }
+      fetchTopology();
     }
 
     async function resetInterface() {
       const node = document.getElementById("nodeSelect").value;
       const iface = document.getElementById("ifaceSelect").value;
+      const bidirectional = document.getElementById("bidirCheck").checked;
 
-      const res = await fetch('/api/v1/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ node_id: node, interface: iface })
+      const res = await fetch("/api/v1/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ node_id: node, interface: iface, bidirectional: bidirectional })
       });
       const data = await res.json();
-      logMsg(`Reset ${node}:${iface} back to default`);
+      const targets = (data.targets || [`${node}:${iface}`]).join(" & ");
+      logMsg("RESET", `Restored ${targets}`);
+      fetchTopology();
     }
 
+    async function resetAllMesh() {
+      await fetch("/api/v1/reset_all", { method: "POST" });
+      dismissBanner();
+      logMsg("RESET", "Cleared all netem faults across all namespaces");
+      fetchTopology();
+    }
+
+    syncInterfaceOptions("veth1-2");
+    updateLossSlider(100);
+    logMsg("ROUTE", "Connected to B.A.T.M.A.N. V telemetry daemon");
     setInterval(fetchTopology, 1000);
     fetchTopology();
   </script>
