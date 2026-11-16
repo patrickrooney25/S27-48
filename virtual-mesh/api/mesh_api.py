@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Mesh Network Telemetry & Control API
-Provides REST endpoints for topology discovery, metric extraction, and fault injection.
-Compatible with both network namespaces (virtual) and direct host interfaces (physical).
+Provides REST endpoints for topology discovery, metric extraction, GeoJSON/KML export,
+and synthetic fault injection across virtual and physical mesh nodes.
 """
 
 import os
@@ -17,33 +17,34 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
     title="Mesh Telemetry & Fault Control API",
-    description="Manages topology extraction and synthetic impairment across virtual and physical mesh nodes.",
-    version="1.1.0",
+    description="Manages topology extraction, GeoJSON/KML GIS export, and synthetic impairment across mesh nodes.",
+    version="1.2.0",
 )
 
 MAC_PATTERN = r"(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}"
 
-# Mock base coordinates (Blacksburg, VA) for spatial visualization
+# Base coordinates (Blacksburg, VA) with realistic 12-22m field-test spacing
+# At 37.23°N: 0.00001° lat ≈ 1.11m, 0.00001° lon ≈ 0.89m
 BASE_LAT = 37.229572
 BASE_LON = -80.413938
 NODE_OFFSETS = {
-    "vnode1": (0.000, 0.000),      # Center / Base
-    "vnode2": (0.012, 0.010),      # Northeast
-    "vnode3": (0.022, 0.018),      # Far Northeast
-    "vnode4": (-0.010, 0.014),     # Southeast
-    "vnode5": (-0.005, 0.026),     # East-Southeast
-    "vnode6": (0.010, 0.035),      # Far East
-    "pnode1": (0.000, 0.000),
-    "pnode2": (0.012, 0.010),
-    "pnode3": (-0.010, 0.014),
-    "pnode4": (0.005, 0.028),
+    "vnode1": (0.00000,  0.00000),   # Origin (0m, 0m)
+    "vnode2": (0.00011,  0.00009),   # ~12.2m N, ~8.0m E (~14.6m from vnode1)
+    "vnode3": (0.00018,  0.00021),   # ~20.0m N, ~18.7m E (~13.2m from vnode2)
+    "vnode4": (-0.00009, 0.00012),   # ~10.0m S, ~10.7m E (~14.6m from vnode1)
+    "vnode5": (-0.00004, 0.00024),   # ~4.4m S, ~21.4m E (~12.0m from vnode4)
+    "vnode6": (0.00009,  0.00033),   # ~10.0m N, ~29.4m E (~16.5m from vnode5)
+    "pnode1": (0.00000,  0.00000),
+    "pnode2": (0.00011,  0.00009),
+    "pnode3": (-0.00009, 0.00012),
+    "pnode4": (0.00005,  0.00025),
 }
 
 # --- Lightweight In-Memory Caches & Active Fault Registry ---
 _NODE_MAC_CACHE: Dict[str, Dict[str, object]] = {}
 _TOPO_CACHE: Dict[str, object] = {"timestamp": 0.0, "data": None}
 _ACTIVE_FAULTS: Dict[Tuple[str, str], Dict[str, object]] = {}
-TOPO_CACHE_TTL = 0.25  # 250 ms deduplication window for concurrent UI + KML polls
+TOPO_CACHE_TTL = 0.25  # 250 ms deduplication window
 
 
 # --- Command Execution & Peer Resolution Helpers ---
@@ -188,8 +189,8 @@ def get_topology():
         graph_nodes.append({
             "id": node,
             "mac": primary_mac,
-            "lat": BASE_LAT + offset[0],
-            "lon": BASE_LON + offset[1],
+            "lat": round(BASE_LAT + offset[0], 7),
+            "lon": round(BASE_LON + offset[1], 7),
             "status": "online",
         })
 
@@ -219,7 +220,6 @@ def get_topology():
                     metric_display = f"{metric_value}/255"
                     compat_score = metric_value
 
-                # Determine if this route is a direct 1-hop link or multi-hop failover path
                 expected_direct_if = f"veth{node.replace('vnode', '')}-{target_node.replace('vnode', '')}"
                 is_direct = (egress_if == expected_direct_if)
 
@@ -243,6 +243,60 @@ def get_topology():
     _TOPO_CACHE["timestamp"] = time.monotonic()
     _TOPO_CACHE["data"] = result
     return result
+
+
+@app.get("/api/v1/topology.geojson")
+def get_topology_geojson():
+    """
+    Exports the live mesh topology in standard RFC 7946 GeoJSON format
+    for Leaflet.js rendering and external GIS/simulation interoperability.
+    """
+    topo = get_topology()
+    node_coords = {n["id"]: [n["lon"], n["lat"]] for n in topo["nodes"]}
+    features = []
+
+    for node in topo["nodes"]:
+        features.append({
+            "type": "Feature",
+            "id": node["id"],
+            "geometry": {
+                "type": "Point",
+                "coordinates": [node["lon"], node["lat"]],
+            },
+            "properties": {
+                "feature_type": "node",
+                "id": node["id"],
+                "mac": node["mac"],
+                "status": node["status"],
+            },
+        })
+
+    for link in topo["links"]:
+        src, tgt = link["source"], link["target"]
+        if src in node_coords and tgt in node_coords:
+            features.append({
+                "type": "Feature",
+                "id": f"{src}-{tgt}",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [node_coords[src], node_coords[tgt]],
+                },
+                "properties": {
+                    "feature_type": "link",
+                    "source": src,
+                    "target": tgt,
+                    "egress_interface": link["egress_interface"],
+                    "is_direct": link["is_direct"],
+                    "metric_type": link["metric_type"],
+                    "metric_value": link["metric_value"],
+                    "metric_display": link["metric_display"],
+                },
+            })
+
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+    }
 
 
 @app.post("/api/v1/impair")
@@ -344,9 +398,7 @@ def reset_all_impairments():
 
 @app.get("/api/v1/network_link.kml")
 def get_kml_network_link():
-    """
-    Returns the Network Link wrapper file for Google Earth Pro (1-second polling).
-    """
+    """Legacy KML NetworkLink wrapper preserved for backward compatibility."""
     kml_content = """<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <NetworkLink>
@@ -365,9 +417,7 @@ def get_kml_network_link():
 
 @app.get("/api/v1/live_mesh.kml")
 def get_live_mesh_kml():
-    """
-    Generates dynamic 3D KML displaying nodes and throughput/TQ-colored links.
-    """
+    """Legacy KML feed preserved for backward compatibility."""
     topo = get_topology()
     kml_parts = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -398,7 +448,6 @@ def get_live_mesh_kml():
         if src in node_coords and tgt in node_coords:
             p1 = node_coords[src]
             p2 = node_coords[tgt]
-
             if link.get("metric_type") == "THROUGHPUT_MBIT":
                 mbps = link["metric_value"]
                 style = "#goodLink" if mbps >= 5.0 else ("#degradedLink" if mbps >= 2.0 else "#poorLink")

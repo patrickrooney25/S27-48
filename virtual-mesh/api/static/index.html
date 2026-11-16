@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
     :root {
       --bg-canvas: #080c14;
@@ -33,11 +35,7 @@
       --crimson-border: rgba(239, 68, 68, 0.38);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg-canvas);
@@ -46,12 +44,10 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      padding: 22px 28px 18px;
+      padding: 20px 26px 16px;
     }
 
-    .mono {
-      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
 
     /* Top Header */
     header {
@@ -60,30 +56,19 @@
       align-items: center;
       gap: 16px;
       flex-wrap: wrap;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
+    .brand { display: flex; align-items: center; gap: 14px; }
 
     .pulse-ring {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
+      width: 22px; height: 22px; border-radius: 50%;
       background: rgba(16, 185, 129, 0.18);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
 
     .pulse-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
+      width: 9px; height: 9px; border-radius: 50%;
       background: var(--emerald);
       box-shadow: 0 0 8px var(--emerald);
       animation: pulse 2s infinite;
@@ -94,45 +79,41 @@
       50% { opacity: 0.55; transform: scale(0.92); }
     }
 
-    .brand h1 {
-      font-size: 1.28rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--text-primary);
-    }
+    .brand h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-sub { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
 
-    .brand-sub {
-      font-size: 0.78rem;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+    .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
     .kpi-pill {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 8px 14px;
-      font-size: 0.78rem;
+      padding: 8px 13px;
+      font-size: 0.77rem;
       font-weight: 500;
-      color: var(--text-primary);
       display: inline-flex;
       align-items: center;
       gap: 8px;
     }
 
-    .kpi-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--emerald);
+    .kpi-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); }
+
+    .btn-geojson {
+      background: var(--bg-card);
+      border: 1px solid var(--cyan-border);
+      color: var(--cyan);
+      border-radius: 8px;
+      padding: 8px 13px;
+      font-size: 0.77rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
     }
+
+    .btn-geojson:hover { background: var(--cyan-bg); color: #fff; }
 
     .btn-reset-all {
       background: rgba(239, 68, 68, 0.12);
@@ -140,7 +121,7 @@
       color: #fca5a5;
       border-radius: 8px;
       padding: 8px 14px;
-      font-size: 0.78rem;
+      font-size: 0.77rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
@@ -149,11 +130,7 @@
       transition: all 0.15s ease;
     }
 
-    .btn-reset-all:hover {
-      background: rgba(239, 68, 68, 0.22);
-      border-color: var(--crimson);
-      color: #fff;
-    }
+    .btn-reset-all:hover { background: rgba(239, 68, 68, 0.22); border-color: var(--crimson); color: #fff; }
 
     /* Failover Alert Banner */
     .alert-banner {
@@ -161,77 +138,29 @@
       background: linear-gradient(90deg, rgba(245, 158, 11, 0.14), rgba(245, 158, 11, 0.07));
       border: 1px solid var(--amber-border);
       border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 18px;
+      padding: 11px 16px;
+      margin-bottom: 16px;
     }
 
-    .alert-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .alert-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .alert-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .alert-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
     .alert-icon {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
+      width: 24px; height: 24px; border-radius: 6px;
       background: rgba(245, 158, 11, 0.2);
       border: 1px solid var(--amber-border);
       color: var(--amber);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.85rem;
-      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
     }
 
-    .alert-title {
-      color: #fbbf24;
-      font-weight: 600;
-      font-size: 0.82rem;
-    }
+    .alert-title { color: #fbbf24; font-weight: 600; font-size: 0.82rem; }
+    .alert-detail { color: #fde68a; font-size: 0.8rem; }
+    .alert-close { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1rem; padding: 2px 6px; }
+    .alert-close:hover { color: #fff; }
 
-    .alert-detail {
-      color: #fde68a;
-      font-size: 0.8rem;
-    }
-
-    .alert-close {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 2px 6px;
-    }
-
-    .alert-close:hover {
-      color: #fff;
-    }
-
-    .alert-progress-track {
-      height: 3px;
-      background: rgba(245, 158, 11, 0.16);
-      border-radius: 99px;
-      margin-top: 10px;
-      overflow: hidden;
-    }
-
-    .alert-progress-fill {
-      height: 100%;
-      width: 100%;
-      background: var(--amber);
-      transition: width 1s linear;
-    }
+    .alert-progress-track { height: 3px; background: rgba(245, 158, 11, 0.16); border-radius: 99px; margin-top: 9px; overflow: hidden; }
+    .alert-progress-fill { height: 100%; width: 100%; background: var(--amber); transition: width 1s linear; }
 
     /* Breadcrumb Subbar */
     .subbar {
@@ -243,38 +172,15 @@
     }
 
     .breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--text-muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      font-weight: 600;
+      display: flex; align-items: center; gap: 10px;
+      color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
     }
 
-    .breadcrumb span.active {
-      color: var(--text-secondary);
-      text-transform: none;
-      letter-spacing: normal;
-      font-size: 0.8rem;
-    }
+    .breadcrumb span.active { color: var(--text-secondary); text-transform: none; letter-spacing: normal; font-size: 0.8rem; }
+    .subbar-right { display: flex; align-items: center; gap: 14px; color: var(--text-muted); }
+    .live-indicator { color: var(--emerald); font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
 
-    .subbar-right {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      color: var(--text-muted);
-    }
-
-    .live-indicator {
-      color: var(--emerald);
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    /* Main 2-Column Grid */
+    /* Main Workspace */
     .workspace {
       display: grid;
       grid-template-columns: 1.55fr 1fr;
@@ -283,17 +189,15 @@
       align-items: start;
     }
 
-    @media (max-width: 1120px) {
-      .workspace {
-        grid-template-columns: 1fr;
-      }
-    }
+    @media (max-width: 1120px) { .workspace { grid-template-columns: 1fr; } }
+
+    .left-stack { display: flex; flex-direction: column; gap: 20px; }
 
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 20px;
+      padding: 18px 20px;
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
     }
 
@@ -302,33 +206,84 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
     }
 
-    .card-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
+    .card-title { font-size: 1.03rem; font-weight: 700; color: var(--text-primary); }
+    .card-subtitle { font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px; }
 
-    .card-subtitle {
-      font-size: 0.78rem;
+    /* Leaflet Map Container */
+    .map-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .map-btn {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
       color: var(--text-secondary);
-      margin-top: 3px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
 
-    .live-pill {
-      background: var(--emerald-bg);
-      border: 1px solid var(--emerald-border);
-      color: var(--emerald);
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 6px;
-      display: inline-flex;
+    .map-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+    .map-btn.active { background: var(--bg-elevated); color: var(--cyan); border-color: var(--cyan-border); }
+
+    #meshMap {
+      height: 310px;
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #060911;
+      z-index: 1;
+    }
+
+    .map-legend {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 6px;
-      letter-spacing: 0.04em;
+      margin-top: 10px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .legend-items { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+
+    /* Custom Leaflet Node Pin */
+    .mesh-node-pin {
+      background: rgba(15, 22, 35, 0.94);
+      border: 2px solid #10b981;
+      color: #f8fafc;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
+      white-space: nowrap;
+      text-align: center;
+      transform: translate(-50%, -50%);
+    }
+
+    .mesh-node-pin.gateway {
+      border-color: #38bdf8;
+    }
+
+    .leaflet-tooltip.mesh-edge-tip {
+      background: rgba(11, 17, 28, 0.94);
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     }
 
     /* Filter & Search Bar */
@@ -338,7 +293,7 @@
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .filter-tabs {
@@ -354,153 +309,83 @@
       background: transparent;
       border: none;
       color: var(--text-secondary);
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       font-weight: 600;
       padding: 5px 11px;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.15s ease;
     }
 
-    .filter-btn:hover {
-      color: var(--text-primary);
-    }
+    .filter-btn:hover { color: var(--text-primary); }
+    .filter-btn.active { background: var(--bg-elevated); color: var(--text-primary); }
 
-    .filter-btn.active {
-      background: var(--bg-elevated);
-      color: var(--text-primary);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-    }
-
-    .search-box {
-      position: relative;
-      min-width: 220px;
-    }
-
+    .search-box { position: relative; min-width: 210px; }
     .search-box input {
       width: 100%;
       background: var(--bg-input);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 6px 10px 6px 30px;
+      padding: 6px 10px 6px 28px;
       color: var(--text-primary);
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       outline: none;
     }
-
-    .search-box input:focus {
-      border-color: var(--cyan);
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      font-size: 0.78rem;
-      pointer-events: none;
-    }
+    .search-box input:focus { border-color: var(--cyan); }
+    .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.75rem; }
 
     /* Routing Table */
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
+    .table-wrap { overflow-x: auto; max-height: 290px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; }
     th {
       text-align: left;
-      font-size: 0.68rem;
+      font-size: 0.67rem;
       font-weight: 700;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--text-muted);
-      padding: 10px 12px;
+      padding: 9px 12px;
       border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg-card);
+      z-index: 2;
     }
+    th.right, td.right { text-align: right; }
 
-    th.right, td.right {
-      text-align: right;
-    }
+    tbody tr { border-bottom: 1px solid var(--border-subtle); }
+    tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+    tbody tr.rerouted-row { background: rgba(56, 189, 248, 0.04); }
+    tbody tr.rerouted-row td:first-child { border-left: 2px solid var(--cyan); }
 
-    tbody tr {
-      border-bottom: 1px solid var(--border-subtle);
-      transition: background 0.12s ease;
-    }
-
-    tbody tr:hover {
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    tbody tr.rerouted-row {
-      background: rgba(56, 189, 248, 0.04);
-    }
-
-    tbody tr.rerouted-row td:first-child {
-      border-left: 2px solid var(--cyan);
-    }
-
-    td {
-      padding: 11px 12px;
-      font-size: 0.8rem;
-      vertical-align: middle;
-    }
-
-    .pair-cell {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .pair-arrow {
-      color: var(--text-muted);
-      margin: 0 5px;
-    }
+    td { padding: 9px 12px; font-size: 0.79rem; vertical-align: middle; }
+    .pair-cell { font-weight: 600; }
+    .pair-arrow { color: var(--text-muted); margin: 0 5px; }
 
     .iface-tag {
       display: inline-block;
       background: var(--bg-elevated);
       border: 1px solid var(--border);
       color: var(--text-secondary);
-      padding: 3px 9px;
+      padding: 2px 8px;
       border-radius: 6px;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
     }
 
     .route-pill {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 3px 10px;
+      padding: 3px 9px;
       border-radius: 6px;
-      font-size: 0.73rem;
+      font-size: 0.72rem;
       font-weight: 600;
     }
 
-    .route-direct {
-      background: var(--emerald-bg);
-      border: 1px solid var(--emerald-border);
-      color: #34d399;
-    }
+    .route-direct { background: var(--emerald-bg); border: 1px solid var(--emerald-border); color: #34d399; }
+    .route-rerouted { background: var(--cyan-bg); border: 1px solid var(--cyan-border); color: var(--cyan); }
 
-    .route-rerouted {
-      background: var(--cyan-bg);
-      border: 1px solid var(--cyan-border);
-      color: var(--cyan);
-    }
-
-    .throughput-val {
-      font-weight: 600;
-      font-size: 0.8rem;
-      color: var(--text-primary);
-    }
-
-    .throughput-rerouted {
-      color: var(--cyan);
-    }
+    .throughput-val { font-weight: 600; font-size: 0.79rem; }
+    .throughput-rerouted { color: var(--cyan); }
 
     .status-pill {
       display: inline-flex;
@@ -508,72 +393,34 @@
       gap: 6px;
       padding: 3px 10px;
       border-radius: 999px;
-      font-size: 0.72rem;
+      font-size: 0.71rem;
       font-weight: 600;
     }
 
-    .status-optimal {
-      background: var(--emerald-bg);
-      border: 1px solid var(--emerald-border);
-      color: #34d399;
-    }
-
-    .status-degraded {
-      background: var(--amber-bg);
-      border: 1px solid var(--amber-border);
-      color: #fbbf24;
-    }
-
-    .status-poor {
-      background: var(--crimson-bg);
-      border: 1px solid var(--crimson-border);
-      color: #f87171;
-    }
-
-    .status-pill-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: currentColor;
-    }
+    .status-optimal { background: var(--emerald-bg); border: 1px solid var(--emerald-border); color: #34d399; }
+    .status-degraded { background: var(--amber-bg); border: 1px solid var(--amber-border); color: #fbbf24; }
+    .status-poor { background: var(--crimson-bg); border: 1px solid var(--crimson-border); color: #f87171; }
+    .status-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
     .table-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 14px;
-      padding-top: 10px;
-      font-size: 0.75rem;
+      margin-top: 12px;
+      padding-top: 8px;
+      font-size: 0.74rem;
       color: var(--text-muted);
       flex-wrap: wrap;
       gap: 10px;
     }
 
-    .footer-counts {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-    }
-
+    .footer-counts { display: flex; align-items: center; gap: 10px; font-weight: 600; }
     .count-direct { color: var(--emerald); }
     .count-rerouted { color: var(--cyan); }
 
     /* Fault Injection Controller */
-    .form-row-2 {
-      display: grid;
-      grid-template-columns: 1fr 1.35fr;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .field-label {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-    }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1.35fr; gap: 12px; margin-bottom: 14px; }
+    .field-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
 
     select {
       width: 100%;
@@ -582,16 +429,12 @@
       border-radius: 8px;
       padding: 9px 12px;
       color: var(--text-primary);
-      font-size: 0.8rem;
+      font-size: 0.79rem;
       outline: none;
       cursor: pointer;
     }
+    select:focus { border-color: var(--cyan); }
 
-    select:focus {
-      border-color: var(--cyan);
-    }
-
-    /* Bidirectional Toggle Card */
     .toggle-box {
       background: var(--bg-input);
       border: 1px solid var(--border);
@@ -604,89 +447,28 @@
       margin-bottom: 16px;
     }
 
-    .toggle-title {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
+    .toggle-title { font-size: 0.82rem; font-weight: 600; }
+    .toggle-desc { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    .toggle-right { display: flex; align-items: center; gap: 8px; }
+    .toggle-state { font-size: 0.72rem; font-weight: 700; color: var(--emerald); }
 
-    .toggle-desc {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .toggle-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .toggle-state {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--emerald);
-    }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 42px;
-      height: 24px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider-switch {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background-color: #1e293b;
-      border-radius: 999px;
-      transition: 0.2s;
-    }
-
+    .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-switch { position: absolute; cursor: pointer; inset: 0; background-color: #1e293b; border-radius: 999px; transition: 0.2s; }
     .slider-switch:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: #fff;
-      border-radius: 50%;
-      transition: 0.2s;
+      position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background-color: #fff; border-radius: 50%; transition: 0.2s;
     }
+    .switch input:checked + .slider-switch { background-color: var(--emerald); }
+    .switch input:checked + .slider-switch:before { transform: translateX(18px); }
 
-    .switch input:checked + .slider-switch {
-      background-color: var(--emerald);
-    }
-
-    .switch input:checked + .slider-switch:before {
-      transform: translateX(18px);
-    }
-
-    /* Packet Loss Slider */
-    .slider-group {
-      margin-bottom: 14px;
-    }
-
-    .slider-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
+    .slider-group { margin-bottom: 14px; }
+    .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .loss-badge {
       background: var(--amber-bg);
       border: 1px solid var(--amber-border);
       color: #fbbf24;
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       font-weight: 700;
       padding: 2px 9px;
       border-radius: 6px;
@@ -706,229 +488,64 @@
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--amber);
-      border: 2px solid #fff;
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
-      cursor: pointer;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--amber); border: 2px solid #fff;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6); cursor: pointer;
     }
 
-    .slider-scale {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.68rem;
-      color: var(--text-muted);
-      margin-top: 5px;
-    }
+    .slider-scale { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-muted); margin-top: 5px; }
 
-    /* Inline Latency Row */
-    .latency-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
+    .latency-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
     .latency-input-wrap {
-      display: flex;
-      align-items: center;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 6px 10px;
-      width: 125px;
+      display: flex; align-items: center;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 10px; width: 125px;
     }
+    .latency-input-wrap input { width: 100%; background: transparent; border: none; color: var(--text-primary); font-size: 0.82rem; outline: none; }
+    .latency-unit { color: var(--text-muted); font-size: 0.72rem; }
 
-    .latency-input-wrap input {
-      width: 100%;
-      background: transparent;
-      border: none;
-      color: var(--text-primary);
-      font-size: 0.82rem;
-      outline: none;
-    }
+    .action-buttons { display: grid; grid-template-columns: 1.15fr 1.15fr 0.95fr; gap: 8px; margin-bottom: 18px; }
+    .btn { border-radius: 8px; padding: 9px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease; text-align: center; }
+    .btn-sever { background: var(--crimson-solid); border: 1px solid #f87171; color: #fff; }
+    .btn-sever:hover { background: #dc2626; }
+    .btn-custom { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--amber-border); color: #fbbf24; }
+    .btn-custom:hover { background: rgba(245, 158, 11, 0.25); }
+    .btn-restore { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); }
+    .btn-restore:hover { border-color: var(--text-secondary); }
 
-    .latency-unit {
-      color: var(--text-muted);
-      font-size: 0.72rem;
-    }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .section-title { font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .fault-count-badge { background: var(--crimson-bg); border: 1px solid var(--crimson-border); color: #fca5a5; font-size: 0.7rem; padding: 1px 7px; border-radius: 5px; }
+    .section-hint { font-size: 0.7rem; color: var(--text-muted); }
 
-    /* Action Buttons */
-    .action-buttons {
-      display: grid;
-      grid-template-columns: 1.15fr 1.15fr 0.95fr;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-
-    .btn {
-      border-radius: 8px;
-      padding: 9px 10px;
-      font-size: 0.76rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      text-align: center;
-    }
-
-    .btn-sever {
-      background: var(--crimson-solid);
-      border: 1px solid #f87171;
-      color: #fff;
-    }
-
-    .btn-sever:hover {
-      background: #dc2626;
-    }
-
-    .btn-custom {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid var(--amber-border);
-      color: #fbbf24;
-    }
-
-    .btn-custom:hover {
-      background: rgba(245, 158, 11, 0.25);
-    }
-
-    .btn-restore {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      color: var(--text-primary);
-    }
-
-    .btn-restore:hover {
-      border-color: var(--text-secondary);
-    }
-
-    /* Active Netem Faults */
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .section-title {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .fault-count-badge {
-      background: var(--crimson-bg);
-      border: 1px solid var(--crimson-border);
-      color: #fca5a5;
-      font-size: 0.7rem;
-      padding: 1px 7px;
-      border-radius: 5px;
-    }
-
-    .section-hint {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-    }
-
-    .fault-pills-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 16px;
-      min-height: 34px;
-    }
-
+    .fault-pills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; min-height: 34px; }
     .fault-pill {
-      background: var(--crimson-bg);
-      border: 1px solid var(--crimson-border);
-      color: #fca5a5;
-      border-radius: 7px;
-      padding: 6px 10px;
-      font-size: 0.73rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
+      background: var(--crimson-bg); border: 1px solid var(--crimson-border); color: #fca5a5;
+      border-radius: 7px; padding: 6px 10px; font-size: 0.73rem;
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
     }
+    .fault-pill button { background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 0.85rem; line-height: 1; padding: 0 2px; }
+    .fault-pill button:hover { color: #fff; }
+    .no-faults { grid-column: 1 / -1; background: var(--bg-input); border: 1px dashed var(--border); border-radius: 7px; padding: 7px 10px; font-size: 0.74rem; color: var(--text-muted); }
 
-    .fault-pill button {
-      background: none;
-      border: none;
-      color: #fca5a5;
-      cursor: pointer;
-      font-size: 0.85rem;
-      line-height: 1;
-      padding: 0 2px;
-    }
-
-    .fault-pill button:hover {
-      color: #fff;
-    }
-
-    .no-faults {
-      grid-column: 1 / -1;
-      background: var(--bg-input);
-      border: 1px dashed var(--border);
-      border-radius: 7px;
-      padding: 7px 10px;
-      font-size: 0.74rem;
-      color: var(--text-muted);
-    }
-
-    /* Demo Action Log */
     .log-box {
-      background: #060911;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      height: 92px;
-      overflow-y: auto;
-      font-size: 0.72rem;
-      line-height: 1.55;
+      background: #060911; border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; height: 145px; overflow-y: auto; font-size: 0.72rem; line-height: 1.55;
     }
-
-    .log-line {
-      display: flex;
-      gap: 8px;
-    }
-
+    .log-line { display: flex; gap: 8px; }
     .log-ts { color: var(--text-muted); }
     .log-tag-fault { color: #f87171; font-weight: 700; }
     .log-tag-route { color: var(--cyan); font-weight: 700; }
     .log-tag-reset { color: var(--emerald); font-weight: 700; }
     .log-msg { color: var(--text-secondary); }
 
-    /* Bottom Footer */
     footer {
-      margin-top: 18px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-subtle);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.73rem;
-      color: var(--text-muted);
-      flex-wrap: wrap;
-      gap: 10px;
+      margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-subtle);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.73rem; color: var(--text-muted); flex-wrap: wrap; gap: 10px;
     }
-
-    .footer-left, .footer-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .footer-status {
-      color: var(--text-secondary);
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-    }
+    .footer-left, .footer-right { display: flex; align-items: center; gap: 12px; }
+    .footer-status { color: var(--text-secondary); display: inline-flex; align-items: center; gap: 7px; }
   </style>
 </head>
 <body>
@@ -939,7 +556,7 @@
       <div class="pulse-ring"><div class="pulse-dot"></div></div>
       <div>
         <h1>Mesh Control &amp; Telemetry Console</h1>
-        <div class="brand-sub">B.A.T.M.A.N. V Live Telemetry &bull; 1s Poll</div>
+        <div class="brand-sub">B.A.T.M.A.N. V Live Telemetry &bull; Leaflet GIS (10&ndash;25m Field Scale)</div>
       </div>
     </div>
 
@@ -947,6 +564,7 @@
       <div class="kpi-pill"><span class="kpi-dot"></span><span id="nodeCount">6</span> Active Nodes</div>
       <div class="kpi-pill"><span id="linkCount">15</span> Active Paths</div>
       <div class="kpi-pill mono">Protocol: BATMAN_V</div>
+      <a class="btn-geojson mono" href="/api/v1/topology.geojson" download="mesh_topology.geojson" title="Download live RFC 7946 GeoJSON">&#8615; GeoJSON</a>
       <button class="btn-reset-all" onclick="resetAllMesh()">&#8634; Reset All Mesh Faults</button>
     </div>
   </header>
@@ -971,7 +589,7 @@
     <div class="breadcrumb">
       <span>NETWORK OPERATIONS</span>
       <span>/</span>
-      <span class="active">Mesh overview</span>
+      <span class="active">Field topology &amp; routing</span>
     </div>
     <div class="subbar-right mono">
       <span class="live-indicator"><span class="kpi-dot"></span> LIVE</span>
@@ -981,57 +599,81 @@
 
   <!-- Main Two-Column Workspace -->
   <main class="workspace">
-    <!-- Left Card: Live Routing & Throughput -->
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Live Routing &amp; Throughput</div>
-          <div class="card-subtitle">Originator routes across the mesh backbone</div>
-        </div>
-        <div class="live-pill mono"><span class="kpi-dot"></span> LIVE</div>
-      </div>
-
-      <div class="toolbar">
-        <div class="filter-tabs">
-          <button class="filter-btn active" data-filter="all" onclick="setRouteFilter('all', this)">All Paths</button>
-          <button class="filter-btn" data-filter="direct" onclick="setRouteFilter('direct', this)">Direct 1-Hop</button>
-          <button class="filter-btn" data-filter="rerouted" onclick="setRouteFilter('rerouted', this)">Rerouted</button>
+    <!-- Left Column: Embedded Leaflet GIS Map + Live Routing Table -->
+    <div class="left-stack">
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Live Geospatial Mesh Map</div>
+            <div class="card-subtitle">Sub-meter Leaflet.js view &bull; Click any physical link to select</div>
+          </div>
+          <div class="map-controls">
+            <button class="map-btn active" id="btnSat" onclick="setBasemap('satellite', this)">Satellite</button>
+            <button class="map-btn" id="btnDark" onclick="setBasemap('dark', this)">Dark NOC</button>
+            <button class="map-btn" onclick="fitMeshBounds()">Re-center</button>
+          </div>
         </div>
 
-        <div class="search-box">
-          <span class="search-icon">&#128269;</span>
-          <input type="text" id="searchInput" placeholder="Filter originator or interface" oninput="renderTable()" />
+        <div id="meshMap"></div>
+
+        <div class="map-legend">
+          <div class="legend-items">
+            <span class="legend-item"><span class="swatch" style="background:#10b981;"></span> Direct 1-Hop</span>
+            <span class="legend-item"><span class="swatch" style="background:#38bdf8; border-top: 2px dashed #38bdf8; height:0;"></span> Multi-Hop Reroute</span>
+            <span class="legend-item"><span class="swatch" style="background:#ef4444; border-top: 2px dashed #ef4444; height:0;"></span> Severed Link</span>
+          </div>
+          <span class="mono" id="zoomReadout">Zoom: 20.0</span>
         </div>
-      </div>
+      </section>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Originator Pair</th>
-              <th>Egress IF</th>
-              <th>Route Type</th>
-              <th class="right">Throughput</th>
-              <th class="right">Status</th>
-            </tr>
-          </thead>
-          <tbody id="linksBody">
-            <tr><td colspan="5" style="color: var(--text-muted); padding: 20px 12px;">Awaiting telemetry poll...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="table-footer">
-        <div id="tableSummary">Showing 0 of 0 active paths</div>
-        <div class="footer-counts mono">
-          <span class="count-direct" id="directCountLabel">0 direct</span>
-          <span style="color: var(--text-muted);">/</span>
-          <span class="count-rerouted" id="reroutedCountLabel">0 rerouted</span>
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Live Routing &amp; Throughput</div>
+            <div class="card-subtitle">Originator routes across the mesh backbone</div>
+          </div>
+          <div class="toolbar" style="margin-bottom: 0;">
+            <div class="filter-tabs">
+              <button class="filter-btn active" data-filter="all" onclick="setRouteFilter('all', this)">All Paths</button>
+              <button class="filter-btn" data-filter="direct" onclick="setRouteFilter('direct', this)">Direct 1-Hop</button>
+              <button class="filter-btn" data-filter="rerouted" onclick="setRouteFilter('rerouted', this)">Rerouted</button>
+            </div>
+            <div class="search-box">
+              <span class="search-icon">&#128269;</span>
+              <input type="text" id="searchInput" placeholder="Filter originator or IF" oninput="renderTable()" />
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
 
-    <!-- Right Card: Fault Injection Controller -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Originator Pair</th>
+                <th>Egress IF</th>
+                <th>Route Type</th>
+                <th class="right">Throughput</th>
+                <th class="right">Status</th>
+              </tr>
+            </thead>
+            <tbody id="linksBody">
+              <tr><td colspan="5" style="color: var(--text-muted); padding: 20px 12px;">Awaiting telemetry poll...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-footer">
+          <div id="tableSummary">Showing 0 of 0 active paths</div>
+          <div class="footer-counts mono">
+            <span class="count-direct" id="directCountLabel">0 direct</span>
+            <span style="color: var(--text-muted);">/</span>
+            <span class="count-rerouted" id="reroutedCountLabel">0 rerouted</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Column: Fault Injection Controller -->
     <section class="card">
       <div class="card-header">
         <div>
@@ -1134,7 +776,7 @@
     </div>
     <div class="footer-right mono">
       <span>Collector: mesh-gateway-01</span>
-      <span>v2026.11</span>
+      <span>v2026.12</span>
     </div>
   </footer>
 
@@ -1148,9 +790,151 @@
       vnode6: ["veth6-3", "veth6-5"]
     };
 
+    const PHYSICAL_EDGES = [
+      ["vnode1", "vnode2", "veth1-2"],
+      ["vnode1", "vnode4", "veth1-4"],
+      ["vnode2", "vnode3", "veth2-3"],
+      ["vnode2", "vnode4", "veth2-4"],
+      ["vnode2", "vnode5", "veth2-5"],
+      ["vnode3", "vnode6", "veth3-6"],
+      ["vnode4", "vnode5", "veth4-5"],
+      ["vnode5", "vnode6", "veth5-6"]
+    ];
+
+    let latestNodes = [];
     let latestLinks = [];
     let currentFilter = "all";
     let convergenceTimer = null;
+    let initialFitDone = false;
+
+    // --- Initialize Leaflet Map with Sub-Meter Overzoom (Zoom 22) ---
+    const map = L.map("meshMap", {
+      center: [37.22962, -80.41377],
+      zoom: 20,
+      maxZoom: 22,
+      zoomSnap: 0.25,
+      attributionControl: false
+    });
+
+    L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(map);
+
+    const tileLayers = {
+      satellite: L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        { maxNativeZoom: 19, maxZoom: 22 }
+      ),
+      dark: L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        { subdomains: "abcd", maxNativeZoom: 19, maxZoom: 22 }
+      )
+    };
+
+    let activeBasemap = tileLayers.satellite.addTo(map);
+    const linkLayerGroup = L.layerGroup().addTo(map);
+    const nodeLayerGroup = L.layerGroup().addTo(map);
+
+    map.on("zoomend", () => {
+      document.getElementById("zoomReadout").textContent = `Zoom: ${map.getZoom().toFixed(2)}`;
+    });
+
+    function setBasemap(mode, btn) {
+      map.removeLayer(activeBasemap);
+      activeBasemap = tileLayers[mode].addTo(map);
+      document.querySelectorAll(".map-controls .map-btn").forEach(b => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+    }
+
+    function fitMeshBounds() {
+      if (!latestNodes.length) return;
+      const latLngs = latestNodes.map(n => [n.lat, n.lon]);
+      map.fitBounds(L.latLngBounds(latLngs), { padding: [42, 42], maxZoom: 20.5 });
+    }
+
+    function renderLeafletTopology(nodes, links, activeImpairments) {
+      linkLayerGroup.clearLayers();
+      nodeLayerGroup.clearLayers();
+
+      const coordMap = {};
+      nodes.forEach(n => { coordMap[n.id] = L.latLng(n.lat, n.lon); });
+
+      const severedSet = new Set();
+      (activeImpairments || []).forEach(f => {
+        if (f.loss_pct >= 100) {
+          const m = f.interface.match(/^veth(\d+)-(\d+)$/);
+          if (m) {
+            severedSet.add([`vnode${m[1]}`, `vnode${m[2]}`].sort().join("-"));
+          }
+        }
+      });
+
+      const liveLinkMap = {};
+      links.forEach(l => {
+        liveLinkMap[[l.source, l.target].sort().join("-")] = l;
+      });
+
+      // Draw physical links & rerouted paths
+      PHYSICAL_EDGES.forEach(([a, b, iface]) => {
+        const p1 = coordMap[a];
+        const p2 = coordMap[b];
+        if (!p1 || !p2) return;
+
+        const key = [a, b].sort().join("-");
+        const isSevered = severedSet.has(key);
+        const live = liveLinkMap[key];
+        const distMeters = p1.distanceTo(p2).toFixed(1);
+
+        let color = "#334155";
+        let dashArray = null;
+        let weight = 3;
+        let tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/>IF: ${iface}`;
+
+        if (isSevered) {
+          color = "#ef4444";
+          dashArray = "6, 6";
+          weight = 3.5;
+          tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/><strong style="color:#f87171;">SEVERED (100% loss)</strong>`;
+        } else if (live && live.is_direct) {
+          color = "#10b981";
+          weight = 4;
+          tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/>IF: ${live.egress_interface} &bull; ${live.metric_display}`;
+        } else if (live && !live.is_direct) {
+          color = "#38bdf8";
+          dashArray = "5, 6";
+          weight = 3;
+          tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/><strong style="color:#38bdf8;">Rerouted via ${live.egress_interface}</strong> (${live.metric_display})`;
+        }
+
+        const poly = L.polyline([p1, p2], {
+          color: color,
+          weight: weight,
+          dashArray: dashArray,
+          opacity: 0.92
+        }).addTo(linkLayerGroup);
+
+        poly.bindTooltip(tipHtml, { sticky: true, className: "mesh-edge-tip" });
+        poly.on("click", () => {
+          document.getElementById("nodeSelect").value = a;
+          syncInterfaceOptions(iface);
+          logMsg("ROUTE", `Selected ${a}:${iface} (${distMeters}m span)`);
+        });
+      });
+
+      // Draw node pins
+      nodes.forEach(n => {
+        const isGateway = n.id === "vnode1" || n.id === "vnode4";
+        const icon = L.divIcon({
+          className: "",
+          html: `<div class="mesh-node-pin ${isGateway ? 'gateway' : ''}">${n.id}</div>`,
+          iconSize: [0, 0]
+        });
+        L.marker([n.lat, n.lon], { icon: icon }).addTo(nodeLayerGroup);
+      });
+
+      if (!initialFitDone && nodes.length > 0) {
+        fitMeshBounds();
+        initialFitDone = true;
+      }
+    }
 
     function syncInterfaceOptions(preferredIface = null) {
       const node = document.getElementById("nodeSelect").value;
@@ -1308,12 +1092,12 @@
         if (!res.ok) return;
         const data = await res.json();
 
-        const nodeTotal = data.nodes.length;
+        latestNodes = data.nodes || [];
         latestLinks = data.links || [];
 
-        document.getElementById("nodeCount").textContent = nodeTotal;
+        document.getElementById("nodeCount").textContent = latestNodes.length;
         document.getElementById("linkCount").textContent = latestLinks.length;
-        document.getElementById("footerReachable").textContent = `${nodeTotal} / ${nodeTotal} nodes reachable`;
+        document.getElementById("footerReachable").textContent = `${latestNodes.length} / ${latestNodes.length} nodes reachable`;
 
         const nowUtc = new Date().toISOString().split("T")[1].split(".")[0];
         document.getElementById("lastUpdated").textContent = `Updated ${nowUtc} UTC`;
@@ -1334,6 +1118,7 @@
           }).join("");
         }
 
+        renderLeafletTopology(latestNodes, latestLinks, impairments);
         renderTable();
       } catch (err) {
         console.error("Telemetry fetch failed:", err);
