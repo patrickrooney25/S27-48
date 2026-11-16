@@ -25,8 +25,8 @@ MAC_PATTERN = r"(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}"
 
 # Base coordinates (Blacksburg, VA) with realistic 12-22m field-test spacing
 # At 37.23°N: 0.00001° lat ≈ 1.11m, 0.00001° lon ≈ 0.89m
-BASE_LAT = 37.229572
-BASE_LON = -80.413938
+BASE_LAT = 37.227320
+BASE_LON = -80.422280
 NODE_OFFSETS = {
     "vnode1": (0.00000,  0.00000),   # Origin (0m, 0m)
     "vnode2": (0.00011,  0.00009),   # ~12.2m N, ~8.0m E (~14.6m from vnode1)

@@ -107,6 +107,7 @@
       font-size: 0.77rem;
       font-weight: 600;
       text-decoration: none;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -565,6 +566,7 @@
       <div class="kpi-pill"><span id="linkCount">15</span> Active Paths</div>
       <div class="kpi-pill mono">Protocol: BATMAN_V</div>
       <a class="btn-geojson mono" href="/api/v1/topology.geojson" download="mesh_topology.geojson" title="Download live RFC 7946 GeoJSON">&#8615; GeoJSON</a>
+      <button class="btn-geojson mono" onclick="exportEventLogCsv()" title="Download timestamped fault &amp; routing event log (CSV)">&#8615; Event Log (CSV)</button>
       <button class="btn-reset-all" onclick="resetAllMesh()">&#8634; Reset All Mesh Faults</button>
     </div>
   </header>
@@ -608,8 +610,6 @@
             <div class="card-subtitle">Sub-meter Leaflet.js view &bull; Click any physical link to select</div>
           </div>
           <div class="map-controls">
-            <button class="map-btn active" id="btnSat" onclick="setBasemap('satellite', this)">Satellite</button>
-            <button class="map-btn" id="btnDark" onclick="setBasemap('dark', this)">Dark NOC</button>
             <button class="map-btn" onclick="fitMeshBounds()">Re-center</button>
           </div>
         </div>
@@ -618,9 +618,10 @@
 
         <div class="map-legend">
           <div class="legend-items">
-            <span class="legend-item"><span class="swatch" style="background:#10b981;"></span> Direct 1-Hop</span>
-            <span class="legend-item"><span class="swatch" style="background:#38bdf8; border-top: 2px dashed #38bdf8; height:0;"></span> Multi-Hop Reroute</span>
-            <span class="legend-item"><span class="swatch" style="background:#ef4444; border-top: 2px dashed #ef4444; height:0;"></span> Severed Link</span>
+            <span class="legend-item"><span class="swatch" style="background:#10b981;"></span> Optimal (&ge;5 MBit/s)</span>
+            <span class="legend-item"><span class="swatch" style="background:#f59e0b;"></span> Degraded</span>
+            <span class="legend-item"><span class="swatch" style="background:#38bdf8; border-top: 2px dashed #38bdf8; height:0;"></span> Rerouted</span>
+            <span class="legend-item"><span class="swatch" style="background:#ef4444; border-top: 2px dashed #ef4444; height:0;"></span> Poor / Severed</span>
           </div>
           <span class="mono" id="zoomReadout">Zoom: 20.0</span>
         </div>
@@ -806,10 +807,12 @@
     let currentFilter = "all";
     let convergenceTimer = null;
     let initialFitDone = false;
+    let eventCounter = 0;
+    const eventHistory = [];
 
     // --- Initialize Leaflet Map with Sub-Meter Overzoom (Zoom 22) ---
     const map = L.map("meshMap", {
-      center: [37.22962, -80.41377],
+      center: [37.22737, -80.42212],
       zoom: 20,
       maxZoom: 22,
       zoomSnap: 0.25,
@@ -818,31 +821,17 @@
 
     L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(map);
 
-    const tileLayers = {
-      satellite: L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { maxNativeZoom: 19, maxZoom: 22 }
-      ),
-      dark: L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-        { subdomains: "abcd", maxNativeZoom: 19, maxZoom: 22 }
-      )
-    };
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { maxNativeZoom: 19, maxZoom: 22 }
+    ).addTo(map);
 
-    let activeBasemap = tileLayers.satellite.addTo(map);
     const linkLayerGroup = L.layerGroup().addTo(map);
     const nodeLayerGroup = L.layerGroup().addTo(map);
 
     map.on("zoomend", () => {
       document.getElementById("zoomReadout").textContent = `Zoom: ${map.getZoom().toFixed(2)}`;
     });
-
-    function setBasemap(mode, btn) {
-      map.removeLayer(activeBasemap);
-      activeBasemap = tileLayers[mode].addTo(map);
-      document.querySelectorAll(".map-controls .map-btn").forEach(b => b.classList.remove("active"));
-      if (btn) btn.classList.add("active");
-    }
 
     function fitMeshBounds() {
       if (!latestNodes.length) return;
@@ -894,9 +883,18 @@
           weight = 3.5;
           tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/><strong style="color:#f87171;">SEVERED (100% loss)</strong>`;
         } else if (live && live.is_direct) {
-          color = "#10b981";
+          const mbps = Number(live.metric_value ?? 0);
+          if (mbps < 2.0) {
+            color = "#ef4444";
+            tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/><strong style="color:#f87171;">Poor</strong> &bull; ${live.metric_display}`;
+          } else if (mbps < 5.0) {
+            color = "#f59e0b";
+            tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/><strong style="color:#fbbf24;">Degraded</strong> &bull; ${live.metric_display}`;
+          } else {
+            color = "#10b981";
+            tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/>IF: ${live.egress_interface} &bull; ${live.metric_display}`;
+          }
           weight = 4;
-          tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/>IF: ${live.egress_interface} &bull; ${live.metric_display}`;
         } else if (live && !live.is_direct) {
           color = "#38bdf8";
           dashArray = "5, 6";
@@ -997,11 +995,45 @@
           textEl.innerHTML = `${label} &mdash; ELP neighbor purge in ~${remaining}s...`;
         } else {
           textEl.innerHTML = `${label} &mdash; Failover converged; traffic rerouted.`;
-          logMsg("ROUTE", `B.A.T.M.A.N. V converged failover around ${label}`);
+          const evt = recordEvent("FAILOVER_CONVERGED", label);
+          logMsg("ROUTE", `[${evt.event_id}] B.A.T.M.A.N. V converged failover around ${label}`);
           clearInterval(convergenceTimer);
           setTimeout(() => { banner.style.display = "none"; }, 4000);
         }
       }, 1000);
+    }
+
+    function recordEvent(action, targets, params = {}) {
+      eventCounter += 1;
+      const entry = {
+        event_id: `EVT-${String(eventCounter).padStart(4, "0")}`,
+        timestamp_utc: new Date().toISOString(),
+        action: action,
+        targets: Array.isArray(targets) ? targets.join(";") : String(targets || "all"),
+        loss_pct: params.loss_pct ?? "",
+        delay_ms: params.delay_ms ?? "",
+        jitter_ms: params.jitter_ms ?? 0,
+        bidirectional: params.bidirectional ?? ""
+      };
+      eventHistory.push(entry);
+      return entry;
+    }
+
+    function exportEventLogCsv() {
+      const headers = ["event_id", "timestamp_utc", "action", "targets", "loss_pct", "delay_ms", "jitter_ms", "bidirectional"];
+      const rows = eventHistory.map(e =>
+        headers.map(h => `"${String(e[h]).replace(/"/g, '""')}"`).join(",")
+      );
+      const csvContent = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `mesh_event_log_${new Date().toISOString().replace(/[:.]/g, "-")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     function logMsg(type, msg) {
@@ -1082,7 +1114,8 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ node_id: nodeId, interface: iface, bidirectional: false })
       });
-      logMsg("RESET", `Restored ${nodeId}:${iface}`);
+      const evt = recordEvent("LINK_RESTORED", `${nodeId}:${iface}`, { bidirectional: false });
+      logMsg("RESET", `[${evt.event_id}] Restored ${nodeId}:${iface}`);
       fetchTopology();
     }
 
@@ -1095,9 +1128,18 @@
         latestNodes = data.nodes || [];
         latestLinks = data.links || [];
 
-        document.getElementById("nodeCount").textContent = latestNodes.length;
+        const connectedNodeIds = new Set();
+        latestLinks.forEach(l => {
+          connectedNodeIds.add(l.source);
+          connectedNodeIds.add(l.target);
+        });
+        const reachableCount = latestNodes.filter(n => connectedNodeIds.has(n.id)).length;
+
+        document.getElementById("nodeCount").textContent = `${reachableCount}/${latestNodes.length}`;
         document.getElementById("linkCount").textContent = latestLinks.length;
-        document.getElementById("footerReachable").textContent = `${latestNodes.length} / ${latestNodes.length} nodes reachable`;
+        const footerReachEl = document.getElementById("footerReachable");
+        footerReachEl.textContent = `${reachableCount} / ${latestNodes.length} nodes reachable`;
+        footerReachEl.style.color = reachableCount < latestNodes.length ? "#fbbf24" : "";
 
         const nowUtc = new Date().toISOString().split("T")[1].split(".")[0];
         document.getElementById("lastUpdated").textContent = `Updated ${nowUtc} UTC`;
@@ -1152,8 +1194,15 @@
         })
       });
       const data = await res.json();
-      const targets = (data.targets || [`${node}:${iface}`]).join(" & ");
-      logMsg("FAULT", `${targets} loss=${loss}% delay=${delay}ms`);
+      const targets = data.targets || [`${node}:${iface}`];
+      const actionType = loss === 100 ? "LINK_SEVERED" : "IMPAIR_APPLIED";
+      const evt = recordEvent(actionType, targets, {
+        loss_pct: loss,
+        delay_ms: delay,
+        jitter_ms: 0,
+        bidirectional: bidirectional
+      });
+      logMsg("FAULT", `[${evt.event_id}] ${targets.join(" & ")} loss=${loss}% delay=${delay}ms`);
       if (loss === 100) {
         startConvergenceBanner(`${node}:${iface}`);
       }
@@ -1171,20 +1220,23 @@
         body: JSON.stringify({ node_id: node, interface: iface, bidirectional: bidirectional })
       });
       const data = await res.json();
-      const targets = (data.targets || [`${node}:${iface}`]).join(" & ");
-      logMsg("RESET", `Restored ${targets}`);
+      const targets = data.targets || [`${node}:${iface}`];
+      const evt = recordEvent("LINK_RESTORED", targets, { bidirectional: bidirectional });
+      logMsg("RESET", `[${evt.event_id}] Restored ${targets.join(" & ")}`);
       fetchTopology();
     }
 
     async function resetAllMesh() {
       await fetch("/api/v1/reset_all", { method: "POST" });
       dismissBanner();
-      logMsg("RESET", "Cleared all netem faults across all namespaces");
+      const evt = recordEvent("RESET_ALL", "all_namespaces");
+      logMsg("RESET", `[${evt.event_id}] Cleared all netem faults across all namespaces`);
       fetchTopology();
     }
 
     syncInterfaceOptions("veth1-2");
     updateLossSlider(100);
+    recordEvent("SESSION_STARTED", "dashboard");
     logMsg("ROUTE", "Connected to B.A.T.M.A.N. V telemetry daemon");
     setInterval(fetchTopology, 1000);
     fetchTopology();
