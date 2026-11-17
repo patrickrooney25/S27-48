@@ -562,7 +562,7 @@
     </div>
 
     <div class="header-controls">
-      <div class="kpi-pill"><span class="kpi-dot"></span><span id="nodeCount">6</span> Active Nodes</div>
+      <div class="kpi-pill"><span class="kpi-dot"></span><span id="nodeCount">6/6</span> Active Nodes</div>
       <div class="kpi-pill"><span id="linkCount">15</span> Active Paths</div>
       <div class="kpi-pill mono">Protocol: BATMAN_V</div>
       <a class="btn-geojson mono" href="/api/v1/topology.geojson" download="mesh_topology.geojson" title="Download live RFC 7946 GeoJSON">&#8615; GeoJSON</a>
@@ -856,11 +856,16 @@
         }
       });
 
-const liveLinkMap = {};
+      const liveLinkMap = {};
       const transitRerouteIfaces = new Set();
+      const severedNodes = new Set();
+      severedSet.forEach(pairKey => {
+        pairKey.split("-").forEach(n => severedNodes.add(n));
+      });
+
       links.forEach(l => {
         liveLinkMap[[l.source, l.target].sort().join("-")] = l;
-        if (!l.is_direct && l.egress_interface) {
+        if (!l.is_direct && l.egress_interface && (severedNodes.has(l.source) || severedNodes.has(l.target))) {
           transitRerouteIfaces.add(l.egress_interface);
         }
       });
@@ -1137,8 +1142,16 @@ const liveLinkMap = {};
         if (!res.ok) return;
         const data = await res.json();
 
+        const impairments = data.active_impairments || [];
+        const severedIfaces = new Set(
+          impairments.filter(f => f.loss_pct >= 100).map(f => `${f.node_id}:${f.interface}`)
+        );
+
         latestNodes = data.nodes || [];
-        latestLinks = data.links || [];
+        latestLinks = (data.links || []).filter(l => {
+          return !severedIfaces.has(`${l.source}:${l.egress_interface}`) &&
+                 !severedIfaces.has(`${l.target}:${l.egress_interface}`);
+        });
 
         const connectedNodeIds = new Set();
         latestLinks.forEach(l => {
@@ -1156,7 +1169,6 @@ const liveLinkMap = {};
         const nowUtc = new Date().toISOString().split("T")[1].split(".")[0];
         document.getElementById("lastUpdated").textContent = `Updated ${nowUtc} UTC`;
 
-        const impairments = data.active_impairments || [];
         document.getElementById("faultCountBadge").textContent = impairments.length;
         const faultsBox = document.getElementById("activeFaultsBox");
 
