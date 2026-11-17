@@ -856,9 +856,13 @@
         }
       });
 
-      const liveLinkMap = {};
+const liveLinkMap = {};
+      const transitRerouteIfaces = new Set();
       links.forEach(l => {
         liveLinkMap[[l.source, l.target].sort().join("-")] = l;
+        if (!l.is_direct && l.egress_interface) {
+          transitRerouteIfaces.add(l.egress_interface);
+        }
       });
 
       // Draw physical links & rerouted paths
@@ -870,6 +874,9 @@
         const key = [a, b].sort().join("-");
         const isSevered = severedSet.has(key);
         const live = liveLinkMap[key];
+        const peerIface = iface.replace(/^veth(\d+)-(\d+)$/, "veth$2-$1");
+        const hasActiveFaults = (activeImpairments || []).length > 0;
+        const isCarryingReroute = hasActiveFaults && (transitRerouteIfaces.has(iface) || transitRerouteIfaces.has(peerIface));
         const distMeters = p1.distanceTo(p2).toFixed(1);
 
         let color = "#334155";
@@ -882,6 +889,11 @@
           dashArray = "6, 6";
           weight = 3.5;
           tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/><strong style="color:#f87171;">SEVERED (100% loss)</strong>`;
+        } else if (live && live.is_direct && isCarryingReroute) {
+          color = "#38bdf8";
+          dashArray = "6, 4";
+          weight = 4;
+          tipHtml = `${a} &harr; ${b} (${distMeters} m)<br/><strong style="color:#38bdf8;">Active Failover Transit</strong> (${live.metric_display})`;
         } else if (live && live.is_direct) {
           const mbps = Number(live.metric_value ?? 0);
           if (mbps < 2.0) {
