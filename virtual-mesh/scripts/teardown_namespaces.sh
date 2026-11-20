@@ -22,10 +22,16 @@ echo "[-] Removing control bridge br-ctrl..."
 sudo ip link del br-ctrl 2>/dev/null || true
 
 echo "[-] Removing leftover mesh veths (root side)..."
-sudo ip link del vm1 2>/dev.null || true
-sudo ip link del vm4 2>/dev.null || true
+sudo ip link del vm1 2>/dev/null || true
+sudo ip link del vm4 2>/dev/null || true
 
 echo "[-] Removing mesh bridge br-mesh..."
 sudo ip link del br-mesh 2>/dev/null || true
+
+echo "[-] Removing pnodes and their br-mesh veths..."
+sudo ip netns del pnode1 2>/dev/null || true
+sudo ip netns del pnode2 2>/dev/null || true
+sudo ip link del pe1 2>/dev/null || true
+sudo ip link del pe2 2>/dev/null || true
 
 echo "[+] Cleanup complete. Environment reset!"
